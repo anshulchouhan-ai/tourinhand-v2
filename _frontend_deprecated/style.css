@@ -1,0 +1,29 @@
+/* TourInHand - Custom Native CSS Extensions */
+/* The layout and design systems are established via Tailwind. */
+
+/* Premium Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.5); /* indigo-500/50 */
+}
+
+/* Base Utilities */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Text Selection override */
+::selection {
+    background-color: rgba(99, 102, 241, 0.3);
+    color: white;
+}

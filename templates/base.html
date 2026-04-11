@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="TourInHand — AI-powered safe, smart, and sustainable travel planner for students and budget travelers.">
+  <title>TourInHand — {{ title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+</head>
+<body>
+
+  <!-- ── Top Navigation ── -->
+  <header class="navbar" id="main-navbar">
+    <div class="navbar-inner">
+      <a href="/" class="navbar-logo" aria-label="TourInHand home">
+        <span class="logo-icon">✈️</span>
+        <span class="logo-text">TourInHand</span>
+      </a>
+
+      <nav class="navbar-links" id="nav-links" aria-label="Main navigation">
+        <a href="/" class="nav-link {% if title == 'AI Travel Planner for Students' %}nav-link--active{% endif %}">Home</a>
+        <a href="/dashboard" class="nav-link {% if title == 'Dashboard' %}nav-link--active{% endif %}">Dashboard</a>
+        <a href="/saved-trips" class="nav-link {% if title == 'Saved Trips' %}nav-link--active{% endif %}">My Trips</a>
+      </nav>
+
+      <div class="navbar-actions">
+        <button class="btn btn-ghost btn-sm" onclick="showEmergency()" id="nav-emergency-btn" title="Emergency Contacts">🚨</button>
+        <a href="/dashboard" class="btn btn-primary btn-sm" id="nav-plan-btn">Plan Trip</a>
+        <button class="hamburger" id="hamburger-btn" aria-label="Toggle menu" onclick="toggleMobileMenu()">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobile-menu">
+      <a href="/" class="mobile-nav-link">🏠 Home</a>
+      <a href="/dashboard" class="mobile-nav-link">📊 Dashboard</a>
+      <a href="/saved-trips" class="mobile-nav-link">🗂️ My Trips</a>
+      <a href="/dashboard" class="mobile-nav-link btn btn-primary" style="margin-top:8px">✨ Plan Trip</a>
+    </div>
+  </header>
+
+  <!-- ── Page Content ── -->
+  <main class="page-root" id="page-root">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- ── Loader Overlay ── -->
+  <div class="loader-overlay" id="loader-overlay" aria-hidden="true">
+    <div class="loader-box">
+      <div class="loader-spinner"></div>
+      <div class="loader-text">Loading…</div>
+    </div>
+  </div>
+
+  <!-- ── Toast Container ── -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- ── Emergency Banner ── -->
+  <div class="emergency-overlay" id="emergency-overlay" style="display:none" role="dialog" aria-modal="true" aria-label="Emergency Contacts">
+    <div class="emergency-dialog">
+      <div class="emergency-dialog-header">
+        <h2 class="emergency-dialog-title">🚨 Emergency Contacts</h2>
+        <button class="btn-icon" onclick="hideEmergency()" aria-label="Close">✕</button>
+      </div>
+      <p class="emergency-dialog-sub">Available 24/7 across India — stay safe out there.</p>
+      <div class="emergency-grid">
+        <a href="tel:112" class="emergency-item"><span class="emergency-number">112</span><span class="emergency-label">Emergency</span></a>
+        <a href="tel:100" class="emergency-item"><span class="emergency-number">100</span><span class="emergency-label">Police</span></a>
+        <a href="tel:108" class="emergency-item"><span class="emergency-number">108</span><span class="emergency-label">Ambulance</span></a>
+        <a href="tel:1363" class="emergency-item"><span class="emergency-number">1363</span><span class="emergency-label">Tourist</span></a>
+        <a href="tel:1091" class="emergency-item"><span class="emergency-number">1091</span><span class="emergency-label">Women</span></a>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', path='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

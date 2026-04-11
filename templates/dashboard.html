@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-page">
+
+  <!-- ── Page Header ── -->
+  <div class="dash-header">
+    <div class="dash-header-inner">
+      <div>
+        <h1 class="dash-title">Hello, Explorer 👋</h1>
+        <p class="dash-subtitle">Where do you want to travel today?</p>
+      </div>
+      <div class="dash-header-actions">
+        <button class="btn btn-outline btn-sm" onclick="showEmergency()" id="dash-emergency-btn">🚨 Emergency</button>
+        <button class="btn btn-primary" onclick="openModal('plan-modal')" id="dash-plan-btn">✨ Plan Trip</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-content">
+
+    <!-- ── Widget Row ── -->
+    <div class="widget-row">
+      <div class="widget-card">
+        <div class="widget-icon">{{ widgets.weather.icon }}</div>
+        <div class="widget-body">
+          <div class="widget-value">{{ widgets.weather.temp }}</div>
+          <div class="widget-label">{{ widgets.weather.condition }}</div>
+        </div>
+      </div>
+      <div class="widget-card widget-card--green">
+        <div class="widget-icon">🌱</div>
+        <div class="widget-body">
+          <div class="widget-value">{{ widgets.eco_score.value }}<span class="widget-unit">/100</span></div>
+          <div class="widget-label">{{ widgets.eco_score.label }}</div>
+        </div>
+        <div class="widget-trend">{{ widgets.eco_score.trend }}</div>
+      </div>
+      <div class="widget-card widget-card--blue">
+        <div class="widget-icon">📍</div>
+        <div class="widget-body">
+          <div class="widget-value">{{ widgets.destinations }}</div>
+          <div class="widget-label">Destinations</div>
+        </div>
+      </div>
+      <div class="widget-card widget-card--safe">
+        <div class="widget-icon">🛡️</div>
+        <div class="widget-body">
+          <div class="widget-value" style="font-size:1rem;font-weight:700">Safe</div>
+          <div class="widget-label">{{ widgets.safety_alert.message }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Action Rail ── -->
+    <div class="action-rail">
+      <button onclick="openModal('plan-modal')" class="action-rail-btn action-rail-btn--primary" id="rail-plan-btn">
+        <span class="action-rail-icon">🗺️</span>
+        <span class="action-rail-label">Plan Trip</span>
+        <span class="action-rail-arrow">→</span>
+      </button>
+      <button onclick="showToast('Ride matching active! Finding travelers near you…','info')" class="action-rail-btn action-rail-btn--green" id="rail-ride-btn">
+        <span class="action-rail-icon">🚗</span>
+        <span class="action-rail-label">Share Ride</span>
+        <span class="action-rail-arrow">→</span>
+      </button>
+      <button onclick="showEmergency()" class="action-rail-btn action-rail-btn--red" id="rail-emergency-btn">
+        <span class="action-rail-icon">🚨</span>
+        <span class="action-rail-label">Emergency</span>
+        <span class="action-rail-arrow">→</span>
+      </button>
+    </div>
+
+    <!-- ── Alert Banner ── -->
+    <div class="alert-banner alert-banner--info">
+      <span>📢</span>
+      <span>Major heritage sites are experiencing moderate traffic today — plan morning visits for best experience.</span>
+    </div>
+
+    <!-- ── Destinations Grid ── -->
+    <section class="dash-section" aria-label="Explore destinations">
+      <div class="dash-section-header">
+        <h2 class="dash-section-title">Explore Destinations</h2>
+        <span class="badge">{{ cities | length }} cities</span>
+      </div>
+
+      <div class="city-grid" id="city-grid">
+        {% for city in cities %}
+        <article class="city-card" aria-label="{{ city.name }}" id="city-card-{{ city.id }}">
+          <div class="city-card-img-wrap">
+            <img
+              class="city-card-img"
+              data-city-id="{{ city.id }}"
+              src="{{ city.hero_image if city.hero_image else 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=600&q=70' }}"
+              alt="{{ city.name }} travel destination"
+              loading="lazy"
+            />
+            <div class="city-card-overlay"></div>
+            <div class="city-card-scores">
+              <span class="score-badge score-badge--green" title="Eco Score">🌱 {{ city.eco_score }}</span>
+              <span class="score-badge score-badge--blue" title="Safety Score">🛡️ {{ city.safety_score }}</span>
+            </div>
+          </div>
+          <div class="city-card-body">
+            <div>
+              <h3 class="city-card-name">{{ city.name }}</h3>
+              <p class="city-card-tagline">{{ city.tagline }}</p>
+              <p class="city-card-budget">{{ city.budget }}</p>
+            </div>
+            <div class="city-card-actions">
+              <button
+                class="btn btn-primary btn-sm"
+                id="plan-btn-{{ city.id }}"
+                onclick="quickPlan('{{ city.id }}')"
+              >Plan</button>
+              <button
+                class="btn btn-ghost btn-sm"
+                id="details-btn-{{ city.id }}"
+                onclick="loadCityDetails('{{ city.id }}')"
+              >Details</button>
+            </div>
+          </div>
+        </article>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">🏙️</div>
+          <h3 class="empty-title">No cities available</h3>
+          <p class="empty-desc">Check back soon — we're adding more destinations!</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ── Plan Trip Modal ── -->
+<div class="modal-overlay" id="plan-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-box" id="plan-modal-box">
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title" id="modal-title">🗺️ Plan Your Trip</h2>
+        <p class="modal-sub">Let AI craft your perfect itinerary.</p>
+      </div>
+      <button class="btn-icon" onclick="closeModal('plan-modal')" id="close-modal-btn" aria-label="Close">✕</button>
+    </div>
+
+    <form id="plan-form" class="modal-form">
+      <div class="form-group">
+        <label class="form-label" for="city-select">Destination</label>
+        <select class="form-select" id="city-select" required>
+          <option value="" disabled selected>Choose a city…</option>
+          {% for city in cities %}
+          <option value="{{ city.id }}">{{ city.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="days-select">Duration</label>
+          <select class="form-select" id="days-select">
+            <option value="2">2 Days</option>
+            <option value="3" selected>3 Days</option>
+            <option value="5">5 Days</option>
+            <option value="7">7 Days</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="budget-select">Budget Level</label>
+          <select class="form-select" id="budget-select">
+            <option value="Budget">Budget</option>
+            <option value="Standard" selected>Standard</option>
+            <option value="Premium">Premium</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Interests</label>
+        <div class="interest-grid">
+          <label class="interest-chip"><input type="checkbox" class="interest-check" value="Heritage"> 🏛️ Heritage</label>
+          <label class="interest-chip"><input type="checkbox" class="interest-check" value="Nature"> 🌿 Nature</label>
+          <label class="interest-chip"><input type="checkbox" class="interest-check" value="Food"> 🍜 Food</label>
+          <label class="interest-chip"><input type="checkbox" class="interest-check" value="Adventure"> 🧗 Adventure</label>
+          <label class="interest-chip"><input type="checkbox" class="interest-check" value="Culture"> 🎭 Culture</label>
+          <label class="interest-chip"><input type="checkbox" class="interest-check" value="Hotels"> 🏨 Stays</label>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-primary btn-block" id="generate-btn">✨ Generate Itinerary</button>
+        <button type="button" class="btn btn-ghost" onclick="closeModal('plan-modal')" id="cancel-modal-btn">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadCityDetails(cityId) {
+  try {
+    const res = await fetch('/api/city/' + cityId);
+    const c = await res.json();
+    showToast(c.name + ' — ' + c.best_time + ' · ' + c.budget, 'info');
+  } catch {
+    showToast('Could not load city details.', 'error');
+  }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('plan-form');
+  if (form) form.addEventListener('submit', planTrip);
+});
+</script>
+{% endblock %}
