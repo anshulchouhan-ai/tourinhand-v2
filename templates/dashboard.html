@@ -3,22 +3,25 @@
 {% block content %}
 <main class="pt-12 pb-32 max-w-6xl mx-auto px-6">
 
-  <!-- ── Hero Header ── -->
   <header class="mb-12 text-center md:text-left">
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
       <div>
         <h1 class="font-headline text-4xl md:text-5xl font-black tracking-tight text-slate-900 mb-4 leading-tight">
           Hello, Friend... 👋
         </h1>
-        <p class="text-slate-500 text-lg mb-5 max-w-xl">Where do you want to go today? Pick a city and let AI craft your perfect, safe, and eco-smart itinerary.</p>
+        <p class="text-slate-500 text-lg mb-5 max-w-xl">Where do you want to go buddy? Pick a city and we'll create the
+          perfect, safe, and eco-smart itinerary for you.</p>
         <div class="flex flex-wrap gap-2 justify-center md:justify-start">
-          <span class="px-4 py-1.5 rounded-full bg-blue-50 text-blue-600 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+          <span
+            class="px-4 py-1.5 rounded-full bg-blue-50 text-blue-600 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
             <span class="material-symbols-outlined text-sm">map</span> {{ cities | length }} Destinations
           </span>
-          <span class="px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-600 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+          <span
+            class="px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-600 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
             <span class="material-symbols-outlined text-sm">eco</span> Eco-Smart
           </span>
-          <span class="px-4 py-1.5 rounded-full bg-slate-100 text-slate-500 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+          <span
+            class="px-4 py-1.5 rounded-full bg-slate-100 text-slate-500 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
             <span class="material-symbols-outlined text-sm">verified_user</span> Safety Verified
           </span>
         </div>
@@ -32,15 +35,14 @@
     </div>
   </header>
 
-  <!-- ── Stats Row ── -->
   <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16" aria-label="Quick stats">
     <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center gap-4">
       <div class="size-11 rounded-full bg-blue-50 flex items-center justify-center text-primary">
         <span class="material-symbols-outlined">sunny</span>
       </div>
       <div>
-        <div class="font-headline font-black text-xl text-slate-900">{{ widgets.weather.temp }}</div>
-        <div class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ widgets.weather.condition }}</div>
+        <div class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ widgets.weather.condition if
+          widgets.weather.condition else "Partly Cloudy" }}</div>
       </div>
     </div>
     <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center gap-4">
@@ -72,7 +74,6 @@
     </div>
   </section>
 
-  <!-- ── Cities Grid ── -->
   <section id="destinations-section" class="mb-20">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
       <div>
@@ -83,15 +84,20 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="city-list">
       {% for city in cities %}
-      <article class="group relative overflow-hidden rounded-[2rem] bg-white border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500" id="city-card-{{ city.id }}">
+      <article
+        class="group relative overflow-hidden rounded-[2rem] bg-white border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500">
         <div class="relative overflow-hidden h-56">
           <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             src="{{ city.hero_image if city.hero_image else 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=70' }}"
             alt="{{ city.name }}" />
           <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent"></div>
           <div class="absolute top-4 right-4 flex gap-2">
-            <span class="px-3 py-1 rounded-full bg-emerald-500/90 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-md">🌱 {{ city.eco_score }}</span>
-            <span class="px-3 py-1 rounded-full bg-blue-500/90 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-md">🛡️ {{ city.safety_score }}</span>
+            <span
+              class="px-3 py-1 rounded-full bg-emerald-500/90 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-md">🌱
+              {{ city.eco_score }}</span>
+            <span
+              class="px-3 py-1 rounded-full bg-blue-500/90 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-md">🛡️
+              {{ city.safety_score }}</span>
           </div>
           <div class="absolute bottom-6 left-6">
             <h3 class="font-headline font-black text-white text-2xl tracking-tight">{{ city.name }}</h3>
@@ -100,7 +106,14 @@
         <div class="p-8">
           <p class="text-slate-500 text-sm font-medium mb-6 line-clamp-2 leading-relaxed">{{ city.tagline }}</p>
           <div class="flex items-center justify-between mt-auto">
-            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ city.budget }}</span>
+            <div class="flex flex-col">
+              <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Avg.
+                Cost</span>
+              <span class="text-sm font-black text-primary flex items-center gap-1">
+                ₹{{ "{:,.0f}".format(city.min_budget_per_day) if city.min_budget_per_day else "1,500" }}
+                <span class="text-[10px] text-slate-400 font-bold">/ DAY</span>
+              </span>
+            </div>
             <div class="flex gap-3">
               <button onclick="loadCityDetails('{{ city.id }}')"
                 class="size-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-primary transition-all">
@@ -108,7 +121,7 @@
               </button>
               <button onclick="quickPlan('{{ city.id }}')"
                 class="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
-                Plan Plan →
+                Plan Trip
               </button>
             </div>
           </div>
@@ -118,138 +131,215 @@
     </div>
   </section>
 
-  <!-- ── Features ── -->
-  <section class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
-    <div class="p-10 rounded-[2.5rem] bg-slate-900 text-white flex flex-col gap-6 relative overflow-hidden group">
-      <div class="size-14 bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-400">
-        <span class="material-symbols-outlined text-3xl">security</span>
-      </div>
-      <div>
-        <h4 class="font-headline font-black text-xl mb-3">Safety Intelligence</h4>
-        <p class="text-slate-400 text-sm font-medium leading-relaxed">Routes are analyzed for safety scores. We flag poorly lit areas and recommend student-safe zones, especially for solo travelers.</p>
-      </div>
-    </div>
-    <div class="p-10 rounded-[2.5rem] bg-white border border-slate-100 shadow-sm flex flex-col gap-6">
-      <div class="size-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
-        <span class="material-symbols-outlined text-3xl">eco</span>
-      </div>
-      <div>
-        <h4 class="font-headline font-black text-xl text-slate-900 mb-3">Eco-Smart Choices</h4>
-        <p class="text-slate-500 text-sm font-medium leading-relaxed">We suggest electric rickshaws, walking routes, and low-impact travel options to help reduce your carbon footprint.</p>
-      </div>
-    </div>
-  </section>
+  ...
 </main>
 
-<!-- ── Plan Trip Modal ── -->
-<div id="plan-modal" role="dialog" aria-modal="true" onclick="closeModal('plan-modal')">
-  <div class="bg-white rounded-[40px] w-full max-w-lg mx-4 overflow-hidden shadow-2xl scale-in" onclick="event.stopPropagation()">
-    <div class="bg-slate-900 p-10 text-white">
-      <h2 class="font-headline font-black text-3xl tracking-tight">🗺️ Plan Your Trip</h2>
-      <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-2">Let AI craft your perfect itinerary</p>
-    </div>
-    <form id="plan-form" class="p-10 flex flex-col gap-8">
-      <div class="flex flex-col gap-2">
-        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Destination</label>
-        <select id="city-select" required class="bg-slate-50 border-none rounded-2xl p-5 text-sm font-black text-slate-800 focus:ring-2 focus:ring-primary/20">
-          <option value="" disabled selected>Choose a city…</option>
-          {% for city in cities %}
-          <option value="{{ city.id }}" data-min-budget="{{ city.min_budget_per_day if city.min_budget_per_day else 0 }}">{{ city.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
+<!-- ── Plan Trip Modal (Full Feature Version) ── -->
+<div id="plan-modal" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-box max-w-2xl scale-in">
 
-      <div class="grid grid-cols-2 gap-4">
-        <div class="flex flex-col gap-2">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Start Date</label>
-          <input type="date" id="from-date" required class="bg-slate-50 border-none rounded-2xl p-5 text-sm font-black text-slate-800 focus:ring-2" />
-        </div>
-        <div class="flex flex-col gap-2">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">End Date</label>
-          <input type="date" id="to-date" required class="bg-slate-50 border-none rounded-2xl p-5 text-sm font-black text-slate-800 focus:ring-2" />
-        </div>
+    <!-- Modal Header -->
+    <div class="modal-header bg-slate-900 p-8 text-white relative overflow-hidden rounded-t-[32px]">
+      <div class="relative z-10">
+        <h2 class="font-headline font-black text-3xl tracking-tight">🗺️ Plan Your Trip</h2>
+        <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-2 flex items-center gap-2">
+          <span class="size-2 rounded-full bg-blue-500 animate-pulse"></span> AI-Powered Intelligence
+        </p>
       </div>
-
-      <div class="flex flex-col gap-2">
-        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Budget Strategy</label>
-        <select id="budget-select" class="bg-slate-50 border-none rounded-2xl p-5 text-sm font-black text-slate-800 focus:ring-2">
-          <option value="Budget">Shoestring (Budget)</option>
-          <option value="Standard" selected>Classic (Standard)</option>
-          <option value="Premium">Elite (Premium)</option>
-        </select>
-      </div>
-
-      <button type="submit" class="w-full bg-primary text-white py-6 rounded-[28px] font-black text-sm shadow-2xl shadow-primary/30 hover:bg-primary-dim transition-all active:scale-95">
-        Generate New Plan ✨
+      <button class="absolute top-8 right-8 text-white/50 hover:text-white transition-colors"
+        onclick="closeModal('plan-modal')">
+        <span class="material-symbols-outlined">close</span>
       </button>
+      <!-- Subtle background decoration -->
+      <div class="absolute -right-10 -bottom-10 size-40 bg-blue-500/10 rounded-full blur-3xl"></div>
+    </div>
+
+    <!-- Modal Form -->
+    <form id="plan-form" class="modal-body p-0">
+      <div class="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+
+        <!-- Step 1: Destination -->
+        <div class="space-y-3">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">location_on</span> Destination
+          </label>
+          <select id="city-select" required onchange="updateBudgetHint(); loadCityDestinations(this.value);"
+            class="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-5 text-sm font-black text-slate-800 focus:border-primary/20 focus:bg-white transition-all outline-none">
+            <option value="" disabled selected>Where are we heading?</option>
+            {% for city in cities %}
+            <option value="{{ city.id }}" data-min-budget="{{ city.min_budget_per_day or 0 }}">{{ city.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Step 2: Dates -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-3">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">calendar_month</span> Start Date
+            </label>
+            <input type="date" id="from-date" required onchange="updateBudgetHint()"
+              class="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-5 text-sm font-black text-slate-800 focus:border-primary/20 focus:bg-white transition-all outline-none" />
+          </div>
+          <div class="space-y-3">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">event</span> End Date
+            </label>
+            <input type="date" id="to-date" required onchange="updateBudgetHint()"
+              class="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-5 text-sm font-black text-slate-800 focus:border-primary/20 focus:bg-white transition-all outline-none" />
+          </div>
+        </div>
+
+        <!-- Step 3: Interests -->
+        <div class="space-y-4">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">favorite</span> Your Interests
+          </label>
+          <div class="flex flex-wrap gap-2">
+            {% for cat in ['Heritage', 'Nature', 'Food', 'Adventure', 'Spiritual', 'Shopping', 'Beach', 'Art'] %}
+            <label class="interest-chip">
+              <input type="checkbox" value="{{ cat }}" class="interest-check hidden" />
+              <span
+                class="px-5 py-2.5 rounded-xl border-2 border-slate-100 text-xs font-bold text-slate-500 cursor-pointer transition-all hover:border-primary/30">{{
+                cat }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Step 4: Budget Strategy & Input -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-3">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">payments</span> Travel Strategy
+            </label>
+            <select id="budget-select"
+              class="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-5 text-sm font-black text-slate-800 transition-all outline-none">
+              <option value="Budget">Student (Backpacker)</option>
+              <option value="Standard" selected>Mid-Range (Standard)</option>
+              <option value="Premium">Luxury (Premium)</option>
+            </select>
+          </div>
+          <div class="space-y-3">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">directions_run</span> Travel Style
+            </label>
+            <select id="style-select"
+              class="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-5 text-sm font-black text-slate-800 transition-all outline-none">
+              <option value="backpacking">🎒 Backpacking</option>
+              <option value="chill" selected>🌿 Chill / Relaxed</option>
+              <option value="adventure">⛰️ Adventure</option>
+              <option value="foodie">🍛 Foodie</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          <div class="space-y-3">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">account_balance_wallet</span> Your Total Budget (₹)
+            </label>
+            <div class="budget-input-wrap relative">
+              <input type="number" id="user-budget-input" placeholder="0" oninput="updateBudgetHint()"
+                class="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-5 pl-10 text-sm font-black text-slate-800 outline-none transition-all" />
+              <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+            </div>
+            <!-- Recommended Budget Badge -->
+            <div id="min-recommendation" class="hidden text-[10px] font-black text-primary uppercase mt-1 flex items-center gap-1">
+              <span class="material-symbols-outlined text-[12px]">info</span> Recommended: ₹<span id="min-rec-value">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Budget Suggestion Box -->
+        <div id="budget-suggestion"
+          class="hidden p-6 rounded-2xl border-2 border-blue-100 bg-blue-50/30 flex-col gap-3">
+          <div id="budget-suggestion-text" class="text-sm text-slate-700 leading-relaxed font-medium"></div>
+          <div id="budget-status"
+            class="budget-status hidden items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold"></div>
+        </div>
+
+        <!-- Step 5: Destination Explorer (Multi-select Chips) -->
+        <div id="dest-selector" class="hidden space-y-5 pt-4 border-t border-slate-100">
+          <div class="flex items-center justify-between">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Select Specific Places
+              (Optional)</label>
+            <button type="button" onclick="clearDestSelection()"
+              class="text-[10px] font-black text-primary uppercase hover:underline">Clear All</button>
+          </div>
+
+          <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+            <button type="button" onclick="filterDestChips('all', this)"
+              class="dest-filter-btn dest-filter-btn--active" data-filter="all">All</button>
+            <button type="button" onclick="filterDestChips('morning', this)" class="dest-filter-btn" data-filter="morning">Morning</button>
+            <button type="button" onclick="filterDestChips('evening', this)" class="dest-filter-btn" data-filter="evening">Evening</button>
+            <button type="button" onclick="filterDestChips('low-crowd', this)" class="dest-filter-btn" data-filter="low-crowd">Quiet Spots</button>
+            <button type="button" onclick="filterDestChips('popular', this)" class="dest-filter-btn" data-filter="popular">Popular</button>
+          </div>
+
+          <div id="dest-chips-grid" class="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto custom-scrollbar p-1">
+            <!-- Dynamically populated by app.js -->
+          </div>
+
+          <div id="dest-selected-bar"
+            class="hidden items-center justify-between p-4 bg-primary text-white rounded-xl shadow-lg animate-slide-up">
+            <span id="dest-selected-text" class="text-[10px] font-bold">0 destinations selected</span>
+            <span class="material-symbols-outlined text-sm">auto_awesome</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action Footer -->
+      <div class="p-8 bg-slate-50 border-t border-slate-100">
+        <button type="submit"
+          class="w-full bg-primary text-white py-6 rounded-2xl font-black text-sm shadow-xl shadow-primary/30 hover:bg-primary-dim hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-3">
+          Create AI Itinerary <span class="material-symbols-outlined">magic_button</span>
+        </button>
+      </div>
     </form>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<style>
-  #plan-modal { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); align-items: center; justify-content: center; }
-  #plan-modal.modal-open { display: flex; }
-</style>
 <script>
-  function openModal(id) { document.getElementById(id).classList.add('modal-open'); document.body.style.overflow = 'hidden'; }
-  function closeModal(id) { document.getElementById(id).classList.remove('modal-open'); document.body.style.overflow = ''; }
-
-  function quickPlan(cityId) {
-    const sel = document.getElementById('city-select');
-    if (sel) {
-      sel.value = cityId;
-      openModal('plan-modal');
-    }
-  }
-
-  async function planTrip(e) {
-    e.preventDefault();
-    const cityId = document.getElementById('city-select').value;
-    const fromDate = document.getElementById('from-date').value;
-    const toDate = document.getElementById('to-date').value;
-    const budget = document.getElementById('budget-select').value;
-
-    if (!cityId || !fromDate || !toDate) {
-      showToast('Please fill all details', 'warning');
-      return;
-    }
-
-    const diff = Math.round((new Date(toDate) - new Date(fromDate)) / 86400000);
-    const days = Math.max(1, diff);
-
-    closeModal('plan-modal');
-    showLoader('Crafting your perfect student adventure… ✈️');
-
-    try {
-      const res = await fetch('/api/generate_itinerary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ city_id: cityId, interests: ['Heritage', 'Nature', 'Food'], budget, days: String(days) })
-      });
-      const data = await res.json();
-      sessionStorage.setItem('tih_result', JSON.stringify({ data, opts: { city_id: cityId, days, budget, from_date: fromDate, to_date: toDate } }));
-      window.location.href = '/result-view';
-    } catch (err) {
-      hideLoader();
-      showToast('Failed to plan trip', 'error');
-    }
-  }
-
+  // Link the form to global app.js planTrip function
   document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('plan-form').addEventListener('submit', planTrip);
-    
-    // Default dates
-    const today = new Date().toISOString().split('T')[0];
+    const planForm = document.getElementById('plan-form');
+    if (planForm) {
+      planForm.addEventListener('submit', planTrip);
+    }
+
+    // Auto-set today's date for Start Date
     const fromInput = document.getElementById('from-date');
     const toInput = document.getElementById('to-date');
-    if (fromInput) { fromInput.value = today; fromInput.min = today; }
-    if (toInput) { toInput.min = today; }
-  });
+    if (fromInput) {
+      const today = new Date().toISOString().split('T')[0];
+      fromInput.value = today;
+      fromInput.min = today;
+      if (toInput) {
+          // Set End Date to tomorrow
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          toInput.value = tomorrow.toISOString().split('T')[0];
+          toInput.min = today;
+      }
+    }
 
-  async function loadCityDetails(cityId) {
-    showToast('Loading ' + cityId + ' highlights...', 'info');
-  }
+    // Handle interest chip selection styling
+    document.querySelectorAll('.interest-check').forEach(check => {
+      check.addEventListener('change', () => {
+        const span = check.nextElementSibling;
+        if (check.checked) {
+          span.classList.add('bg-primary', 'text-white', 'border-primary');
+          span.classList.remove('text-slate-500', 'border-slate-100');
+        } else {
+          span.classList.remove('bg-primary', 'text-white', 'border-primary');
+          span.classList.add('text-slate-500', 'border-slate-100');
+        }
+      });
+    });
+  });
 </script>
 {% endblock %}

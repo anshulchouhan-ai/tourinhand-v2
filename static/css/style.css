@@ -51,8 +51,8 @@
   --radius-xl: 32px;
   --radius-full: 9999px;
 
-  --font-head: 'Satoshi', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, sans-serif;
+  --font-head: 'Satoshi', sans-serif;
+  --font-body: 'Inter', sans-serif;
 
   --nav-h: 66px;
   --page-max: 1200px;
@@ -254,8 +254,10 @@ input, select, textarea { font-family: var(--font-body); }
 .modal-box {
   background: var(--bg-card);
   border-radius: var(--radius-xl);
-  padding: 32px;
-  width: 100%; max-width: 520px;
+  padding: 0;
+  width: 100%;
+  max-width: 520px;
+  overflow: hidden;
   box-shadow: var(--shadow-xl);
   animation: modalIn 0.25s ease;
 }

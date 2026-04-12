@@ -99,6 +99,7 @@ async function planTrip(e) {
 
   const cityId       = document.getElementById('city-select')?.value;
   const budget       = document.getElementById('budget-select')?.value || 'Standard';
+  const travelStyle  = document.getElementById('style-select')?.value  || 'chill';
   const interests    = [...document.querySelectorAll('.interest-check:checked')].map(cb => cb.value);
   const userBudget   = parseInt(document.getElementById('user-budget-input')?.value || '0', 10) || 0;
   const selectedPlaces = Array.isArray(_selectedDests) ? [..._selectedDests] : [];
@@ -131,6 +132,7 @@ async function planTrip(e) {
         days: String(days),          // backend still expects a string
         user_budget: userBudget,
         selected_places: selectedPlaces,
+        travel_style: travelStyle,
       })
     });
     if (!res.ok) throw new Error('API error ' + res.status);
@@ -138,7 +140,7 @@ async function planTrip(e) {
     // Store dates in opts so result page can display them
     sessionStorage.setItem('tih_result', JSON.stringify({
       data,
-      opts: { days, budget, user_budget: userBudget, from_date: fromDate, to_date: toDate }
+      opts: { days, budget, user_budget: userBudget, from_date: fromDate, to_date: toDate, travel_style: travelStyle }
     }));
     window.location.href = '/result-view';
   } catch (err) {
@@ -299,21 +301,32 @@ function updateBudgetHint() {
   const statusEl     = document.getElementById('budget-status');
   const budgetEl     = document.getElementById('user-budget-input');
   const budgetWrap   = document.querySelector('.budget-input-wrap');
+  const recEl        = document.getElementById('min-recommendation');
+  const recValEl     = document.getElementById('min-rec-value');
 
-  if (!citySelect || !daysSelect || !suggestionEl) return;
+  if (!citySelect || !suggestionEl) return;
 
   const selectedOpt = citySelect.options[citySelect.selectedIndex];
   const cityName    = selectedOpt?.text || '';
   const minPerDay   = parseInt(selectedOpt?.dataset?.minBudget || '0', 10);
-  const days        = parseInt(daysSelect.value || '3', 10);
+  
+  // Calculate days from dates instead of a static select
+  const days        = getDaysFromDates();
   const minTotal    = minPerDay * days;
   const userBudget  = parseInt(budgetEl?.value || '0', 10) || 0;
 
   // Hide suggestion if no valid city selected or no budget data
   if (!citySelect.value || minPerDay === 0) {
     suggestionEl.style.display = 'none';
+    if (recEl) recEl.style.display = 'none';
     if (statusEl) { statusEl.style.display = 'none'; }
     return;
+  }
+
+  // Update recommendation badge
+  if (recEl && recValEl) {
+    recEl.style.display = 'flex';
+    recValEl.textContent = minTotal.toLocaleString('en-IN');
   }
 
   // Show the plain-English suggestion sentence
@@ -395,224 +408,358 @@ function renderBudgetAnalysis(analysis, opts) {
 
 /* ── Render Result Page ─────────────────────────────────────── */
 function initResultPage() {
-  const container = document.getElementById('result-root');
-  if (!container) return;
-
+  const itineraryEl = document.getElementById('itinerary-days');
+  if (!itineraryEl) return;
   const stored = sessionStorage.getItem('tih_result');
-
-  if (!stored) {
-    // No data — leave fallback empty state visible
-    hideLoader();
-    return;
-  }
-
+  if (!stored) { hideLoader(); return; }
   const { data, opts } = JSON.parse(stored);
   const days = parseInt(opts?.days || 3);
+  const travelStyle = opts?.travel_style || data.ai_insights?.travel_style || 'chill';
 
   // Hero
   const titleEl = document.getElementById('result-city-name');
   if (titleEl) titleEl.textContent = 'Your Smart Plan for ' + (data.name || 'Your City');
-
   const taglineEl = document.getElementById('result-tagline');
-  if (taglineEl) taglineEl.textContent = data.tagline || '';
-
-  // City hero image — update map card thumbnail + hero banner
+  if (taglineEl) taglineEl.textContent = data.tagline || 'Personalized by TourInHand AI.';
   const mapImg = document.getElementById('result-map-img');
-  if (mapImg && data.hero_image) {
-    mapImg.src = data.hero_image;
-    mapImg.alt = (data.name || 'City') + ' — hero photo';
-  }
-
+  if (mapImg && data.hero_image) { mapImg.src = data.hero_image; }
   const tagDays = document.getElementById('result-tag-days');
   if (tagDays) {
     if (opts?.from_date && opts?.to_date) {
-      const fmt = d => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      const fmt = d => new Date(d).toLocaleDateString('en-IN', { day:'numeric', month:'short' });
       tagDays.textContent = `📅 ${fmt(opts.from_date)} – ${fmt(opts.to_date)} · ${days} Days`;
-    } else {
-      tagDays.textContent = '📅 ' + days + ' Days';
-    }
+    } else { tagDays.textContent = '📅 ' + days + ' Days'; }
   }
 
-  const tagBudget = document.getElementById('result-tag-budget');
-  if (tagBudget) tagBudget.textContent = '💰 ' + (opts?.budget || 'Standard');
+  // Travel Style Badge
+  const STYLE_META = {
+    backpacking: { label: '🎒 Backpacking', bg: '#fef3c7', color: '#92400e' },
+    chill:       { label: '🌿 Chill',       bg: '#d1fae5', color: '#065f46' },
+    adventure:   { label: '⛰️ Adventure',   bg: '#fee2e2', color: '#991b1b' },
+    foodie:      { label: '🍛 Foodie',      bg: '#fce7f3', color: '#9d174d' },
+  };
+  const sm = STYLE_META[travelStyle] || STYLE_META.chill;
+  ['style-badge', 'style-chip'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = sm.label;
+    el.style.background = sm.bg;
+    el.style.color = sm.color;
+    el.classList.remove('hidden');
+  });
 
-  // Summary cards
-  const destEl = document.getElementById('summary-destination');
-  if (destEl) destEl.textContent = (data.name || '–') + ', ' + (data.state || '');
-
-  const safeEl = document.getElementById('hl-safety');
-  if (safeEl) safeEl.textContent = (data.safety_score ?? '–') + '/100';
-
-  const ecoEl = document.getElementById('hl-eco');
-  if (ecoEl) ecoEl.textContent = (data.eco_score ?? '–') + '/100';
-
-  const budgetEl = document.getElementById('hl-budget');
-  if (budgetEl) {
-    // per_day_budget is the new dynamic field from the backend
-    // Falls back to total/days, then to static city budget string
-    if (data.per_day_budget > 0) {
-      budgetEl.textContent = `₹${data.per_day_budget.toLocaleString('en-IN')} / day`;
-      // update the parent label to say it's per day
-      const label = budgetEl.closest('.result-summary-card')?.querySelector('.result-summary-label');
-      if (label) label.textContent = 'Est. Budget';
-    } else {
-      const fallback = data.budget_analysis?.user_budget || data.budget || '–';
-      budgetEl.textContent = typeof fallback === 'number'
-        ? `₹${fallback.toLocaleString('en-IN')}`
-        : fallback;
-    }
-  }
-
-  // Budget warning banner (injected below the summary row if budget is tight)
-  const existingWarn = document.getElementById('budget-warning-banner');
-  if (existingWarn) existingWarn.remove();
-  if (data.budget_warning) {
-    const warnBanner = document.createElement('div');
-    warnBanner.id = 'budget-warning-banner';
-    warnBanner.className = 'budget-status budget-status--warn';
-    warnBanner.style.cssText = 'margin: 0 0 16px; border-radius: 10px;';
-    const short = (data.budget_analysis?.shortfall || 0);
-    warnBanner.innerHTML = `⚠️ Your total budget is <strong>₹${short.toLocaleString('en-IN')} below</strong> the comfortable minimum for this trip. Consider adding more or reducing days.`;
-    const summaryRow = document.querySelector('.result-summary-row');
-    summaryRow?.insertAdjacentElement('afterend', warnBanner);
-  }
-
-  // Insight bars
-  const effBar = document.getElementById('efficiency-bar');
-  if (effBar) effBar.style.width = Math.min(100, (data.safety_score ?? 78)) + '%';
-
-  const ecoBar = document.getElementById('eco-bar');
-  if (ecoBar) ecoBar.style.width = Math.min(100, (data.eco_score ?? 60)) + '%';
-
-  const safeBar = document.getElementById('safety-bar');
-  if (safeBar) safeBar.style.width = Math.min(100, (data.safety_score ?? 82)) + '%';
-
-  // Build itinerary
-  const places = data.places || [];
-  const dayBudgets = data.day_budgets || [];
-  const itineraryEl = document.getElementById('itinerary-days');
-  const emptyState = document.getElementById('result-empty-state');
-  const countBadge = document.getElementById('result-place-count');
-
-  if (places.length > 0 && itineraryEl) {
-    if (emptyState) emptyState.style.display = 'none';
-    if (countBadge) countBadge.textContent = places.length + ' places';
-
-    // Keep only the lane-line div, clear everything else
-    const laneLine = itineraryEl.querySelector('.timeline-lane-line');
-    itineraryEl.innerHTML = '';
-    if (laneLine) itineraryEl.appendChild(laneLine);
-
-    const perDay = Math.ceil(places.length / days) || 1;
-    const TIME_EMOJI_TL = { Morning: '🌅', Afternoon: '☀️', Evening: '🌆', Night: '🌙' };
-    const CAT_ICON = {
-      'Heritage': '🏛️', 'Nature': '🌿', 'Food': '🍲', 'Adventure': '⛰️',
-      'Spiritual': '🕌', 'Shopping': '🛍️', 'Beach': '🏖️', 'Art': '🎨',
-      'Sightseeing': '📸', 'Museum': '🏛️', 'Nightlife': '🌃'
+  // Weather Widget
+  const ww = document.getElementById('weather-widget');
+  if (ww) {
+    const wm = {
+      indore:   { icon:'🌤️', temp:'34°C', cond:'Partly Cloudy' },
+      udaipur:  { icon:'☀️',  temp:'38°C', cond:'Clear & Sunny' },
+      jaipur:   { icon:'🌬️', temp:'36°C', cond:'Warm & Breezy' },
+      dehradun: { icon:'⛅',  temp:'22°C', cond:'Mild & Pleasant' },
+      goa:      { icon:'🌊',  temp:'29°C', cond:'Humid & Breezy' },
     };
+    const w = wm[data.id?.toLowerCase()] || { icon:'🌤️', temp:'30°C', cond:'Pleasant' };
+    document.getElementById('weather-icon').textContent = w.icon;
+    document.getElementById('weather-temp').textContent = w.temp;
+    document.getElementById('weather-cond').textContent = w.cond;
+    ww.classList.remove('hidden');
+    ww.style.display = 'flex';
+  }
 
-    let globalIdx = 0;
+  // AI Insights
+  if (data.ai_insights) {
+    const ai = data.ai_insights;
+    // Summary
+    const sBox = document.getElementById('ai-summary-box');
+    const sTxt = document.getElementById('ai-summary-text');
+    if (sBox && sTxt && ai.summary) { sBox.classList.remove('hidden'); sBox.style.display = 'block'; sTxt.textContent = ai.summary; }
+    // Safety Alerts
+    const aBlock = document.getElementById('safety-alert-block');
+    if (aBlock && ai.safety_alerts?.length) {
+      aBlock.classList.remove('hidden'); aBlock.style.display = 'flex';
+      aBlock.innerHTML = `<p style="font-size:0.68rem;font-weight:900;color:#6366f1;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Live Safety Alerts</p>
+        ${ai.safety_alerts.map(a => `
+        <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:rgba(239,68,68,0.06);border-radius:10px;border:1px solid rgba(239,68,68,0.15);">
+          <span class="material-symbols-outlined" style="font-size:0.9rem;color:#ef4444;flex-shrink:0;">warning</span>
+          <span style="font-size:0.76rem;font-weight:600;color:#374151;">${a}</span>
+        </div>`).join('')}`;
+    }
+    // Risk Badge
+    const rWrap = document.getElementById('risk-badge-wrap');
+    const rBadge = document.getElementById('risk-badge');
+    const rLbl = document.getElementById('risk-label');
+    if (rWrap && rBadge && rLbl && ai.risk_level) {
+      rWrap.classList.remove('hidden');
+      rLbl.textContent = ai.risk_level;
+      const rc = { High:{bg:'#fef2f2',c:'#dc2626',b:'#fecaca'}, Moderate:{bg:'#fffbeb',c:'#d97706',b:'#fde68a'}, Safe:{bg:'#f0fdf4',c:'#16a34a',b:'#bbf7d0'} }[ai.risk_level] || {bg:'#f0fdf4',c:'#16a34a',b:'#bbf7d0'};
+      Object.assign(rBadge.style, { background: rc.bg, color: rc.c, borderColor: rc.b });
+    }
+    // Eco Score
+    if (ai.eco_score !== undefined) {
+      const sc = ai.eco_score, circ = 2 * Math.PI * 32;
+      const ecoCard = document.getElementById('eco-card');
+      if (ecoCard) { ecoCard.classList.remove('hidden'); ecoCard.style.display = 'block'; }
+      const ecoArc = document.getElementById('eco-arc');
+      if (ecoArc) setTimeout(() => { ecoArc.style.strokeDashoffset = circ - (sc / 100) * circ; }, 300);
+      const eNum = document.getElementById('eco-score-num'); if (eNum) eNum.textContent = sc;
+      const eLbl = document.getElementById('eco-label'); if (eLbl) eLbl.textContent = sc >= 80 ? 'Excellent 🌱' : sc >= 60 ? 'Good 🌿' : 'Fair 🍂';
+      const eHnt = document.getElementById('eco-hint'); if (eHnt) eHnt.textContent = sc >= 85 ? 'Ride-sharing boosts your score!' : 'Choose walking routes to improve';
+      const eBar = document.getElementById('eco-bar'); if (eBar) setTimeout(() => { eBar.style.width = sc + '%'; }, 300);
+      const eBLbl = document.getElementById('label-eco'); if (eBLbl) eBLbl.textContent = sc + '%';
+      if (travelStyle === 'backpacking') document.getElementById('eco-ride-row')?.classList.remove('hidden');
+    }
+    // Safety bar
+    const ss = data.safety_score ?? 80;
+    const sBar = document.getElementById('safety-bar'); if (sBar) setTimeout(() => { sBar.style.width = ss + '%'; }, 300);
+    const sLbl = document.getElementById('label-safety'); if (sLbl) sLbl.textContent = ss + '%';
+  }
+  // Efficiency bar
+  const eff = Math.min(100, Math.round((data.places?.length || 0) / Math.max(days, 1) * 30));
+  const eBar = document.getElementById('efficiency-bar'); if (eBar) setTimeout(() => { eBar.style.width = eff + '%'; }, 300);
+  const eLbl = document.getElementById('label-efficiency'); if (eLbl) eLbl.textContent = eff + '%';
+
+  // Crowd Insights
+  const places = data.places || [];
+  const cCard = document.getElementById('crowd-card'), cList = document.getElementById('crowd-list');
+  if (cCard && cList && places.length) {
+    cCard.classList.remove('hidden'); cCard.style.display = 'block';
+    const CC = {Low:'#10b981',Medium:'#f59e0b',High:'#ef4444'};
+    const CL = {Low:'Low Crowd',Medium:'Moderate',High:'Peak Hours'};
+    const CT = {Low:'Best anytime',Medium:'Visit before 11 AM or after 4 PM',High:'Arrive before 9 AM to avoid crowds'};
+    cList.innerHTML = places.slice(0, 5).map(p => {
+      const cl = p.crowd_level || 'Medium', col = CC[cl] || '#f59e0b';
+      return `<div style="display:flex;align-items:flex-start;gap:11px;padding:11px 13px;background:#f8fafc;border-radius:14px;border:1px solid #f1f5f9;">
+        <div style="width:9px;height:9px;border-radius:50%;background:${col};flex-shrink:0;margin-top:5px;"></div>
+        <div style="flex:1;"><p style="font-size:0.8rem;font-weight:700;color:#0f172a;margin:0 0 1px;">${p.name}</p>
+        <p style="font-size:0.7rem;color:#64748b;margin:0;font-weight:600;">${CL[cl]} · ${p.time_slot || 'Any'}</p>
+        <p style="font-size:0.67rem;color:${col};margin:2px 0 0;font-weight:700;">${CT[cl]}</p></div>
+        <span style="font-size:0.6rem;font-weight:900;background:${col}18;color:${col};padding:2px 8px;border-radius:99px;border:1px solid ${col}28;">${cl}</span></div>`;
+    }).join('');
+  }
+
+  // Timeline
+  const dayBudgets = data.day_budgets || [];
+  if (places.length > 0) {
+    const emSt = document.getElementById('result-empty-state');
+    if (emSt) emSt.remove();          // instantly remove empty state
+    itineraryEl.innerHTML = '';
+    const perDay = Math.ceil(places.length / days) || 1;
+    const CAT_CLR = {Heritage:'#6366f1',Nature:'#10b981',Food:'#f59e0b',Adventure:'#ef4444',Beach:'#06b6d4',Shopping:'#ec4899',Culture:'#8b5cf6',Spiritual:'#f97316'};
+    let g = 0;
+
     for (let d = 0; d < days; d++) {
-      const dayPlaces = places.slice(d * perDay, (d + 1) * perDay);
-      if (dayPlaces.length === 0 && d > 0) continue;
+      const dp = places.slice(d * perDay, (d + 1) * perDay);
+      if (dp.length === 0 && d > 0) continue;
+      const db = dayBudgets[d] || 0;
 
-      const dayBudget = dayBudgets[d] || 0;
+      // Day header
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:center;gap:14px;margin:28px 0 20px;';
+      div.innerHTML = `<div style="width:36px;height:36px;border-radius:12px;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.9rem;flex-shrink:0;box-shadow:0 6px 18px rgba(0,0,0,0.2);">${d+1}</div>
+        <div><h4 style="font-weight:900;font-size:1rem;color:#0f172a;margin:0;">Day ${d+1} — ${data.name||''}</h4>
+        ${db > 0 ? `<div style="font-size:0.68rem;font-weight:700;color:#94a3b8;letter-spacing:0.06em;text-transform:uppercase;margin-top:2px;">Target ₹${db.toLocaleString('en-IN')}</div>` : ''}</div>`;
+      itineraryEl.appendChild(div);
 
-      // ── Day divider (filled blue dot + label) ──
-      const divider = document.createElement('div');
-      divider.className = 'tl-day-divider';
-      divider.innerHTML = `
-        <div class="tl-day-divider-dot">
-          <span style="color:#fff;font-size:0.7rem;font-weight:900">${d + 1}</span>
-        </div>
-        <div class="tl-day-divider-label">
-          Day ${d + 1} — ${data.name}
-          ${dayBudget > 0 ? `<span style="font-weight:500;color:#595c5e;margin-left:8px;text-transform:none;font-size:0.72rem">Budget: ₹${dayBudget.toLocaleString('en-IN')}</span>` : ''}
-        </div>`;
-      itineraryEl.appendChild(divider);
+      dp.forEach((p, idx) => {
+        const ac = CAT_CLR[p.category] || '#0053cc';
+        const isLast = idx === dp.length - 1 && d === days - 1;
+        const costStr = (p.cost || 'Free').replace(/[^\x20-\x7E₹]/g, '').trim();
+        const cl = p.crowd_level || 'Medium';
+        const crowdC = {Low:'#10b981',Medium:'#f59e0b',High:'#ef4444'};
 
-      // ── One timeline entry per place ──
-      dayPlaces.forEach((p, idx) => {
-        const isFirst = (idx === 0 && d === 0);
-        const timeIcon = TIME_EMOJI_TL[p.time_slot] || '🕐';
-        const catIcon = CAT_ICON[p.category] || '📍';
-        const timeSlotClass = p.time_slot ? `place-time-slot--${p.time_slot.toLowerCase()}` : '';
+        // ── Time-of-day color coding ──────────────────────────────
+        const startTime = p.start_time || '';
+        const endTime   = p.end_time   || '';
+        let dotColor = ac;  // default to category color
+        if (startTime) {
+          const hourMatch = startTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+          if (hourMatch) {
+            let h = parseInt(hourMatch[1]);
+            const sfx = hourMatch[3].toUpperCase();
+            if (sfx === 'PM' && h !== 12) h += 12;
+            if (sfx === 'AM' && h === 12) h = 0;
+            if (h < 12)       dotColor = '#facc15';  // Morning  — yellow
+            else if (h < 17)  dotColor = '#fb923c';  // Afternoon — orange
+            else               dotColor = '#a855f7';  // Evening/Night — purple
+          }
+        }
 
-        const entry = document.createElement('div');
-        entry.className = 'timeline-entry';
-        entry.style.animationDelay = (globalIdx * 0.06) + 's';
+        const timeRow = (startTime && endTime) ? `
+          <span style="display:flex;align-items:center;gap:3px;font-size:0.72rem;font-weight:800;color:#4f46e5;">
+            <span class="material-symbols-outlined" style="font-size:0.9rem;">schedule</span>
+            ${startTime} – ${endTime}
+          </span>` : '';
 
-        entry.innerHTML = `
-          <div class="timeline-dot ${isFirst ? '' : 'timeline-dot--plain'}">
-            ${isFirst ? '<div class="timeline-dot-pulse"></div>' : ''}
-          </div>
-          <div class="tl-card" style="border-radius:1.5rem; overflow:hidden; border:1px solid #f1f5f9; background:#fff; box-shadow:0 10px 15px -3px rgba(0,0,0,0.04);">
-            ${p.image_url ? `
-            <div style="position:relative; overflow:hidden; height:180px;">
-              <img
-                src="${p.image_url}"
-                alt="${p.name}"
-                style="width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);"
-                onmouseover="this.style.transform='scale(1.08)'"
-                onmouseout="this.style.transform='scale(1)'"
-              />
-              <div style="position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 50%);"></div>
-              <span style="position:absolute; bottom:12px; left:16px; background:rgba(0, 83, 204, 0.9); color:#fff; font-size:0.65rem; font-weight:800; padding:4px 12px; border-radius:9999px; text-transform:uppercase; letter-spacing:0.08em; backdrop-filter:blur(4px);">${p.category || 'Sightseeing'}</span>
-            </div>` : ''}
-            <div class="tl-card-content" style="padding:20px 24px;">
-              <h4 class="tl-card-title" style="font-family:'Satoshi', sans-serif; font-weight:800; font-size:1.25rem; color:#0f172a; margin-bottom:16px; letter-spacing:-0.01em;">${p.name}</h4>
-              <div class="tl-chip-row" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-                ${p.time_slot ? `<span class="tl-chip" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:14px; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#475569; border:1px solid #f1f5f9;">
-                  <span class="material-symbols-outlined" style="font-size:1.1rem; color:#64748b;">schedule</span> ${p.time_slot}</span>` : ''}
-                ${p.cost ? `<span class="tl-chip" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:14px; background:#f0fdf4; font-size:0.75rem; font-weight:700; color:#166534; border:1px solid #dcfce7;">
-                  <span class="material-symbols-outlined" style="font-size:1.1rem; color:#166534;">payments</span> ${p.cost.replace(/Ã¢â€šÂ¹/g, '₹')}</span>` : ''}
-                ${p.duration ? `<span class="tl-chip" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:14px; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#475569; border:1px solid #f1f5f9;">
-                  <span class="material-symbols-outlined" style="font-size:1.1rem; color:#64748b;">timer</span> ${p.duration}</span>` : ''}
-                ${p.crowd_level ? `<span class="tl-chip" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:14px; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#475569; border:1px solid #f1f5f9;">
-                  <span class="material-symbols-outlined" style="font-size:1.1rem; color:#64748b;">groups</span> ${p.crowd_level}</span>` : ''}
-                ${p.map_url 
-                  ? `<a href="${p.map_url}" target="_blank" class="tl-map-link" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:14px; background:#eff6ff; font-size:0.75rem; font-weight:700; color:#0053cc; border:1px solid #dbeafe; text-decoration:none; margin-left:auto; transition:all 0.2s;">
-                       <span class="material-symbols-outlined" style="font-size:1.1rem;">map</span> Directions
-                     </a>`
-                  : ''}
+        const ent = document.createElement('div');
+        ent.id = 'timeline-entry-' + g;
+        ent.setAttribute('data-place-name', p.name);
+        ent.style.cssText = 'position:relative;padding-left:50px;padding-bottom:26px;animation:fadeUp 0.35s ease both;';
+        ent.style.animationDelay = (g * 0.07) + 's';
+        ent.innerHTML = `
+          <div style="position:absolute;left:16px;top:34px;bottom:0;width:2px;background:#f1f5f9;z-index:0;${isLast?'display:none':''}"></div>
+          <div style="position:absolute;left:8px;top:5px;width:18px;height:18px;border-radius:50%;background:#fff;border:3.5px solid ${dotColor};z-index:10;box-shadow:0 0 0 5px #fff;transition:border-color 0.4s;"></div>
+          <div style="display:flex;gap:14px;background:#fff;border-radius:22px;padding:13px 15px;border:1.5px solid #f1f5f9;transition:border-color 0.2s,box-shadow 0.2s;cursor:default;"
+               onmouseover="this.style.borderColor='${ac}40';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.07)'"
+               onmouseout="this.style.borderColor='#f1f5f9';this.style.boxShadow='none'">
+            ${p.image_url ? `<div style="width:88px;height:88px;border-radius:15px;overflow:hidden;flex-shrink:0;"><img src="${p.image_url}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;"/></div>` : ''}
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
+                <h4 style="font-weight:800;font-size:0.93rem;color:#0f172a;margin:0;flex:1;">${p.name}</h4>
+                <span style="font-size:0.6rem;font-weight:900;background:${ac}15;color:${ac};padding:3px 9px;border-radius:99px;border:1px solid ${ac}30;flex-shrink:0;white-space:nowrap;">${p.category||'Visit'}</span>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                ${timeRow}
+                <span style="display:flex;align-items:center;gap:3px;font-size:0.7rem;font-weight:600;color:#64748b;"><span class="material-symbols-outlined" style="font-size:0.85rem;color:#94a3b8;">payments</span>${costStr}</span>
+                <span style="display:flex;align-items:center;gap:3px;font-size:0.7rem;font-weight:600;color:#64748b;"><span class="material-symbols-outlined" style="font-size:0.85rem;color:#94a3b8;">timer</span>${p.duration||'1–2 hrs'}</span>
+                <span style="display:flex;align-items:center;gap:3px;font-size:0.7rem;font-weight:700;color:${crowdC[cl]||'#f59e0b'};"><span class="material-symbols-outlined" style="font-size:0.85rem;">groups</span>${cl} crowd</span>
               </div>
             </div>
           </div>`;
-        itineraryEl.appendChild(entry);
-        globalIdx++;
+        itineraryEl.appendChild(ent);
+        g++;
       });
 
-      if (dayPlaces.length === 0) {
-        const freeDay = document.createElement('div');
-        freeDay.className = 'timeline-entry';
-        freeDay.innerHTML = `
-          <div class="timeline-dot timeline-dot--plain"></div>
-          <div class="tl-card">
-            <div class="tl-card-body" style="text-align:center;color:#abadb0;padding:20px;">
-              Free day — explore at your own pace! 🌟
-            </div>
-          </div>`;
-        itineraryEl.appendChild(freeDay);
+      if (dp.length === 0) {
+        const fr = document.createElement('div');
+        fr.style.cssText = 'position:relative;padding-left:50px;padding-bottom:26px;';
+        fr.innerHTML = `<div style="position:absolute;left:8px;top:5px;width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid #cbd5e1;z-index:10;box-shadow:0 0 0 5px #fff;"></div>
+          <div style="padding:18px;background:#f8fafc;border-radius:22px;border:1.5px dashed #e2e8f0;text-align:center;color:#94a3b8;font-size:0.83rem;font-weight:600;">🌟 Free day — explore at your own pace!</div>`;
+        itineraryEl.appendChild(fr);
       }
     }
   }
 
-  // Local tips
+  // Local Tips
   const tipsEl = document.getElementById('local-tips');
   if (tipsEl && data.local_tips?.length) {
-    tipsEl.innerHTML = data.local_tips.map(t =>
-      `<div class="tip-item"><span class="tip-icon">💡</span><span>${t}</span></div>`
-    ).join('');
+    const icons = ['💡','🌟','🛡️','🚌','🍛','📸'];
+    tipsEl.innerHTML = data.local_tips.map((t, i) => `
+      <div style="display:flex;gap:11px;background:#f8fafc;padding:13px 15px;border-radius:16px;border:1px solid #f1f5f9;transition:all 0.2s;"
+           onmouseover="this.style.background='#fff';this.style.borderColor='#6366f1'"
+           onmouseout="this.style.background='#f8fafc';this.style.borderColor='#f1f5f9'">
+        <span style="font-size:1rem;flex-shrink:0;line-height:1.7;">${icons[i%icons.length]}</span>
+        <div><p style="font-size:0.77rem;font-weight:700;color:#0f172a;margin:0 0 2px;">Pro Tip #${i+1}</p>
+        <p style="font-size:0.72rem;color:#64748b;margin:0;line-height:1.5;">${t}</p></div>
+      </div>`).join('');
   }
 
-  // Recommended days note + best visit times (new)
+  // Ride Sharing
+  const rPanel = document.getElementById('ride-share-panel');
+  if (rPanel && (travelStyle === 'backpacking' || travelStyle === 'chill')) {
+    fetch('/api/share_ride_matches').then(r => r.json()).then(matches => {
+      if (!matches?.length) return;
+      const rList = document.getElementById('ride-matches-list');
+      if (!rList) return;
+      rList.innerHTML = matches.map(m => `
+        <div style="background:#f8fafc;border-radius:20px;padding:18px;border:1.5px solid #f1f5f9;display:flex;flex-direction:column;gap:10px;transition:all 0.2s;"
+             onmouseover="this.style.borderColor='#10b981';this.style.background='#fff'"
+             onmouseout="this.style.borderColor='#f1f5f9';this.style.background='#f8fafc'">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#38bdf8);display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:900;color:#fff;">${m.name[0]}</div>
+              <div><p style="font-weight:800;font-size:0.85rem;color:#0f172a;margin:0;">${m.name}</p>
+              <p style="font-size:0.68rem;color:#64748b;margin:0;">${m.verified ? '✅ Verified' : 'Unverified'}</p></div>
+            </div>
+            <span style="font-size:0.88rem;font-weight:900;color:#059669;background:#d1fae5;padding:4px 12px;border-radius:99px;">${m.match_pct}% Match</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="background:#eff6ff;border-radius:12px;padding:10px;text-align:center;">
+              <p style="font-size:0.62rem;font-weight:700;color:#3b82f6;text-transform:uppercase;margin:0 0 2px;">Split Cost</p>
+              <p style="font-size:0.95rem;font-weight:900;color:#1d4ed8;margin:0;">₹${m.split_cost}</p>
+            </div>
+            <div style="background:#f0fdf4;border-radius:12px;padding:10px;text-align:center;">
+              <p style="font-size:0.62rem;font-weight:700;color:#10b981;text-transform:uppercase;margin:0 0 2px;">CO₂ Saved</p>
+              <p style="font-size:0.95rem;font-weight:900;color:#065f46;margin:0;">${m.co2_saved}</p>
+            </div>
+          </div>
+          <button style="width:100%;background:#0f172a;color:#fff;border:none;border-radius:14px;padding:10px;font-weight:900;font-size:0.78rem;cursor:pointer;letter-spacing:0.04em;transition:background 0.2s;"
+                  onmouseover="this.style.background='#1e3a8a'" onmouseout="this.style.background='#0f172a'"
+                  onclick="showToast('Ride request sent to ${m.name.split(' ')[0]}! 🚗', 'success')">Request Ride</button>
+        </div>`).join('');
+      rPanel.classList.remove('hidden');
+      rPanel.style.display = 'block';
+    }).catch(() => {});
+  }
+
   renderCityInsightNote(data, opts);
   renderBestVisitTimes(data);
-
-  // Budget analysis card in sidebar
   renderBudgetAnalysis(data.budget_analysis, opts);
-
   hideLoader();
+}
+
+/* ── AI Live Re-sync (Time-Shift) ──────────────────────────────── */
+async function reEvaluateSchedule() {
+  const input = document.getElementById('resync-input')?.value?.trim();
+  if (!input) { showToast('Describe what happened (e.g. "Spent 1 hour extra at Rajwada")', 'warning'); return; }
+
+  const stored = sessionStorage.getItem('tih_result');
+  if (!stored) return;
+  const parsed = JSON.parse(stored);
+  const places = parsed.data?.places || [];
+  if (!places.length) { showToast('No itinerary loaded.', 'error'); return; }
+
+  const btn = document.getElementById('resync-btn');
+  if (btn) { btn.textContent = 'Syncing…'; btn.disabled = true; }
+
+  try {
+    const res = await fetch('/api/re_evaluate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ places, user_input: input, trip_days: parsed.opts?.days || 3 })
+    });
+    const result = await res.json();
+
+    if (result.places?.length) {
+      // Patch places in session
+      parsed.data.places = result.places;
+      sessionStorage.setItem('tih_result', JSON.stringify(parsed));
+
+      // Live-update each card's time display without full reload
+      result.places.forEach(p => {
+        const entries = document.querySelectorAll('[data-place-name]');
+        entries.forEach(el => {
+          if (el.getAttribute('data-place-name') === p.name) {
+            const timeSpan = el.querySelector('.tl-time-range');
+            if (timeSpan && p.start_time && p.end_time) {
+              timeSpan.textContent = `${p.start_time} – ${p.end_time}`;
+              timeSpan.style.animation = 'flashYellow 0.6s ease';
+            }
+          }
+        });
+      });
+
+      // Show warnings
+      const warnBox = document.getElementById('resync-warnings');
+      if (warnBox) {
+        if (result.warnings?.length) {
+          warnBox.classList.remove('hidden');
+          warnBox.innerHTML = result.warnings.map(w =>
+            `<div style="display:flex;gap:8px;align-items:center;padding:10px 14px;background:#fff7ed;border-radius:12px;border:1px solid #fed7aa;">
+              <span class="material-symbols-outlined" style="color:#ea580c;font-size:1rem;">warning</span>
+              <span style="font-size:0.75rem;font-weight:700;color:#9a3412;">${w.message}</span>
+            </div>`
+          ).join('');
+        } else {
+          warnBox.classList.add('hidden');
+        }
+      }
+
+      const msg = result.delay_applied_mins
+        ? `⏱️ ${result.message} Refreshing cards…`
+        : result.message || 'Schedule re-evaluated.';
+      showToast(msg, result.warnings?.length ? 'warning' : 'success');
+
+      // Soft re-render after brief delay to show updated times
+      setTimeout(() => initResultPage(), 800);
+    }
+  } catch (err) {
+    console.error('Re-evaluate error:', err);
+    showToast('Could not re-sync. Please try again.', 'error');
+  } finally {
+    if (btn) { btn.textContent = 'Sync'; btn.disabled = false; }
+    const inp = document.getElementById('resync-input');
+    if (inp) inp.value = '';
+  }
 }
 
 /* ── City Insight Note ──────────────────────────────────────── */

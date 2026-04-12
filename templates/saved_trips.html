@@ -15,10 +15,14 @@
 
     <!-- Filter Pills -->
     <div class="filter-pills" id="filter-pills" role="tablist">
-      <button class="filter-pill filter-pill--active" data-filter="all" onclick="filterTrips('all', this)" id="filter-all">All</button>
-      <button class="filter-pill" data-filter="Budget" onclick="filterTrips('Budget', this)" id="filter-budget">Budget</button>
-      <button class="filter-pill" data-filter="Standard" onclick="filterTrips('Standard', this)" id="filter-standard">Standard</button>
-      <button class="filter-pill" data-filter="Premium" onclick="filterTrips('Premium', this)" id="filter-premium">Premium</button>
+      <button class="filter-pill filter-pill--active" data-filter="all" onclick="filterTrips('all', this)"
+        id="filter-all">All</button>
+      <button class="filter-pill" data-filter="Budget" onclick="filterTrips('Budget', this)"
+        id="filter-budget">Budget</button>
+      <button class="filter-pill" data-filter="Standard" onclick="filterTrips('Standard', this)"
+        id="filter-standard">Standard</button>
+      <button class="filter-pill" data-filter="Premium" onclick="filterTrips('Premium', this)"
+        id="filter-premium">Premium</button>
     </div>
   </div>
 
@@ -27,19 +31,10 @@
     {% if trips %}
     <div class="saved-grid" id="saved-trips-grid">
       {% for trip in trips %}
-      <article
-        class="trip-card"
-        id="trip-card-{{ trip.id }}"
-        data-budget-type="{{ trip.budget_type }}"
-        aria-label="{{ trip.city_name }} — {{ trip.title }}"
-      >
+      <article class="trip-card" id="trip-card-{{ trip.id }}" data-budget-type="{{ trip.budget_type }}"
+        aria-label="{{ trip.city_name }} — {{ trip.title }}">
         <div class="trip-card-img-wrap">
-          <img
-            class="trip-card-img"
-            src="{{ trip.hero_image }}"
-            alt="{{ trip.city_name }}"
-            loading="lazy"
-          />
+          <img class="trip-card-img" src="{{ trip.hero_image }}" alt="{{ trip.city_name }}" loading="lazy" />
           <div class="trip-card-img-overlay"></div>
           <div class="trip-card-top-badges">
             <span class="trip-badge trip-badge--days">📅 {{ trip.days }}d</span>
@@ -70,21 +65,12 @@
           </div>
 
           <div class="trip-card-actions">
-            <button
-              class="btn btn-primary btn-sm"
-              id="view-{{ trip.id }}"
-              onclick="viewSavedTrip('{{ trip.city_id }}')"
-            >👁 View Plan</button>
-            <button
-              class="btn btn-ghost btn-sm"
-              id="reuse-{{ trip.id }}"
-              onclick="reuseTrip('{{ trip.city_id }}')"
-            >🔁 Reuse</button>
-            <button
-              class="btn btn-danger btn-sm"
-              id="delete-{{ trip.id }}"
-              onclick="deleteTrip('trip-card-{{ trip.id }}')"
-            >🗑</button>
+            <button class="btn btn-primary btn-sm" id="view-{{ trip.id }}"
+              onclick="viewSavedTrip('{{ trip.city_id }}')">👁 View Plan</button>
+            <button class="btn btn-ghost btn-sm" id="reuse-{{ trip.id }}" onclick="reuseTrip('{{ trip.city_id }}')">🔁
+              Reuse</button>
+            <button class="btn btn-danger btn-sm" id="delete-{{ trip.id }}"
+              onclick="deleteTrip('trip-card-{{ trip.id }}')">🗑</button>
           </div>
         </div>
       </article>
@@ -96,7 +82,8 @@
     <div class="empty-state" id="empty-saved">
       <div class="empty-icon">🗺️</div>
       <h2 class="empty-title">No trips saved yet</h2>
-      <p class="empty-desc">Generate an itinerary on the dashboard and hit <strong>Save This Trip</strong> to see it here.</p>
+      <p class="empty-desc">Generate an itinerary on the dashboard and hit <strong>Save This Trip</strong> to see it
+        here.</p>
       <a href="/dashboard" class="btn btn-primary" id="empty-plan-btn">Plan a New Trip ✨</a>
     </div>
     {% endif %}
@@ -115,52 +102,51 @@
 
 {% block scripts %}
 <script>
-function filterTrips(filterValue, btn) {
-  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('filter-pill--active'));
-  btn.classList.add('filter-pill--active');
+  function filterTrips(filterValue, btn) {
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('filter-pill--active'));
+    btn.classList.add('filter-pill--active');
 
-  document.querySelectorAll('.trip-card').forEach(card => {
-    const budgetType = card.dataset.budgetType || '';
-    if (filterValue === 'all' || budgetType === filterValue) {
-      card.style.display = '';
-    } else {
-      card.style.display = 'none';
-    }
-  });
-}
+    document.querySelectorAll('.trip-card').forEach(card => {
+      const budgetType = card.dataset.budgetType || '';
+      if (filterValue === 'all' || budgetType === filterValue) {
+        card.style.display = '';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
 
-function viewSavedTrip(cityId) {
-  showLoader('Loading your saved trip…');
-  fetch('/api/city/' + cityId)
-    .then(r => r.json())
-    .then(data => {
-      sessionStorage.setItem('tih_result', JSON.stringify({ data, opts: { days: 3, budget: 'Standard' } }));
-      window.location.href = '/result-view';
-    })
-    .catch(() => { hideLoader(); showToast('Could not load trip details.', 'error'); });
-}
+  function viewSavedTrip(cityId) {
+    showLoader('Loading your saved trip…');
+    fetch('/api/city/' + cityId)
+      .then(r => r.json())
+      .then(data => {
+        sessionStorage.setItem('tih_result', JSON.stringify({ data, opts: { days: 3, budget: 'Standard' } }));
+        window.location.href = '/result-view';
+      })
+      .catch(() => { hideLoader(); showToast('Could not load trip details.', 'error'); });
+  }
 
-function reuseTrip(cityId) {
-  showToast('Redirecting to plan a new trip to ' + cityId + '…', 'info');
-  setTimeout(() => { window.location.href = '/dashboard'; }, 900);
-}
+  function reuseTrip(cityId) {
+    showToast('Redirecting to plan a new trip to ' + cityId + '…', 'info');
+    setTimeout(() => { window.location.href = '/dashboard'; }, 900);
+  }
 
-function deleteTrip(cardId) {
-  const card = document.getElementById(cardId);
-  if (!card) return;
-  card.style.transition = 'all .3s ease';
-  card.style.opacity = '0';
-  card.style.transform = 'scale(0.95)';
-  setTimeout(() => {
-    card.remove();
-    showToast('Trip removed.', 'info');
-    const remaining = document.querySelectorAll('.trip-card');
-    if (remaining.length === 0) {
-      const dyn = document.getElementById('dynamic-empty-saved');
-      if (dyn) dyn.style.display = 'block';
-    }
-  }, 300);
-}
+  function deleteTrip(cardId) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    card.style.transition = 'all .3s ease';
+    card.style.opacity = '0';
+    card.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      card.remove();
+      showToast('Trip removed.', 'info');
+      const remaining = document.querySelectorAll('.trip-card');
+      if (remaining.length === 0) {
+        const dyn = document.getElementById('dynamic-empty-saved');
+        if (dyn) dyn.style.display = 'block';
+      }
+    }, 300);
+  }
 </script>
 {% endblock %}
-

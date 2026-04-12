@@ -1,49 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="TourInHand — AI-powered safe, smart, and sustainable travel planner for students and budget travelers.">
+  <meta name="description"
+    content="TourInHand — AI-powered safe, smart, and sustainable travel planner for students and budget travelers.">
   <title>TourInHand — {{ title }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- CDNs for Tailwind and Material Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
   <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#0053cc',
+            'primary-dim': '#0042a3',
+            'on-primary': '#ffffff',
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            headline: ['Satoshi', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
 </head>
+
 <body>
 
   <!-- ── Global Navigation ── -->
   <header class="navbar sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-6 py-3 lg:px-12">
     <div class="max-w-[1440px] mx-auto flex items-center justify-between">
       <a href="/" class="flex items-center gap-3 text-primary group">
-        <div class="size-10 bg-primary flex items-center justify-center rounded-xl text-on-primary shadow-lg shadow-primary/30 transition-transform group-hover:scale-110">
+        <div
+          class="size-10 bg-primary flex items-center justify-center rounded-xl text-on-primary shadow-lg shadow-primary/30 transition-transform group-hover:scale-110">
           <span class="material-symbols-outlined text-xl">travel_explore</span>
         </div>
         <span class="text-slate-900 text-xl font-headline font-black tracking-tight">TourInHand</span>
       </a>
 
       <nav class="hidden md:flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-        <a href="/" class="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all {% if title == 'AI Travel Planner for Students' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-500 hover:text-slate-900 hover:bg-white{% endif %}">Home</a>
-        <a href="/dashboard" class="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all {% if title == 'Dashboard' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-500 hover:text-slate-900 hover:bg-white{% endif %}">Dashboard</a>
-        <a href="/saved-trips" class="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all {% if title == 'Saved Trips' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-500 hover:text-slate-900 hover:bg-white{% endif %}">My Trips</a>
+        <a href="/"
+          class="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all {% if title == 'AI Travel Planner for Students' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-500 hover:text-slate-900 hover:bg-white{% endif %}">Home</a>
+        <a href="/dashboard"
+          class="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all {% if title == 'Dashboard' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-500 hover:text-slate-900 hover:bg-white{% endif %}">Dashboard</a>
+        <a href="/saved-trips"
+          class="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all {% if title == 'Saved Trips' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-500 hover:text-slate-900 hover:bg-white{% endif %}">My
+          Trips</a>
       </nav>
 
       <div class="flex items-center gap-3">
-        <button class="size-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border border-slate-100" onclick="showEmergency()" title="Emergency Contacts">
+        <button
+          class="size-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border border-slate-100"
+          onclick="showEmergency()" title="Emergency Contacts">
           <span class="material-symbols-outlined text-xl">emergency</span>
         </button>
-        <a href="/dashboard" class="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-black text-sm shadow-xl shadow-primary/20 hover:bg-primary-dim transition-all active:scale-95">
-          Plan Trip
-        </a>
-        <button class="md:hidden size-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-500" onclick="toggleMobileMenu()">
+
+        <button class="md:hidden size-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-500"
+          onclick="toggleMobileMenu()">
           <span class="material-symbols-outlined">menu</span>
         </button>
       </div>
     </div>
 
     <!-- Mobile Menu Container (JS driven) -->
-    <div id="mobile-menu" class="hidden md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-100 p-6 flex-col gap-4 shadow-2xl">
+    <div id="mobile-menu"
+      class="hidden md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-100 p-6 flex-col gap-4 shadow-2xl">
       <a href="/" class="font-black text-slate-800">Home</a>
       <a href="/dashboard" class="font-black text-slate-800">Dashboard</a>
       <a href="/saved-trips" class="font-black text-slate-800">My Trips</a>
@@ -68,7 +103,8 @@
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
   <!-- ── Emergency Banner ── -->
-  <div class="emergency-overlay" id="emergency-overlay" style="display:none" role="dialog" aria-modal="true" aria-label="Emergency Contacts">
+  <div class="emergency-overlay" id="emergency-overlay" style="display:none" role="dialog" aria-modal="true"
+    aria-label="Emergency Contacts">
     <div class="emergency-dialog">
       <div class="emergency-dialog-header">
         <h2 class="emergency-dialog-title">🚨 Emergency Contacts</h2>
@@ -76,11 +112,16 @@
       </div>
       <p class="emergency-dialog-sub">Available 24/7 across India — stay safe out there.</p>
       <div class="emergency-grid">
-        <a href="tel:112" class="emergency-item"><span class="emergency-number">112</span><span class="emergency-label">Emergency</span></a>
-        <a href="tel:100" class="emergency-item"><span class="emergency-number">100</span><span class="emergency-label">Police</span></a>
-        <a href="tel:108" class="emergency-item"><span class="emergency-number">108</span><span class="emergency-label">Ambulance</span></a>
-        <a href="tel:1363" class="emergency-item"><span class="emergency-number">1363</span><span class="emergency-label">Tourist</span></a>
-        <a href="tel:1091" class="emergency-item"><span class="emergency-number">1091</span><span class="emergency-label">Women</span></a>
+        <a href="tel:112" class="emergency-item"><span class="emergency-number">112</span><span
+            class="emergency-label">Emergency</span></a>
+        <a href="tel:100" class="emergency-item"><span class="emergency-number">100</span><span
+            class="emergency-label">Police</span></a>
+        <a href="tel:108" class="emergency-item"><span class="emergency-number">108</span><span
+            class="emergency-label">Ambulance</span></a>
+        <a href="tel:1363" class="emergency-item"><span class="emergency-number">1363</span><span
+            class="emergency-label">Tourist</span></a>
+        <a href="tel:1091" class="emergency-item"><span class="emergency-number">1091</span><span
+            class="emergency-label">Women</span></a>
       </div>
     </div>
   </div>
@@ -88,4 +129,5 @@
   <script src="{{ url_for('static', path='js/app.js') }}"></script>
   {% block scripts %}{% endblock %}
 </body>
+
 </html>

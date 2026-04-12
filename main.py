@@ -1,6 +1,7 @@
 # main.py — TourInHand v2
 import os
 import logging
+import warnings
 from typing import List
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
@@ -17,18 +18,20 @@ import data
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Optional AI
-try:
-    import google.generativeai as genai
-    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
-    if GOOGLE_API_KEY:
-        genai.configure(api_key=GOOGLE_API_KEY)
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        logger.info("Gemini AI ready.")
-    else:
+# Optional AI — suppress FutureWarning from legacy package
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore', FutureWarning)
+    try:
+        import google.generativeai as genai
+        GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+        if GOOGLE_API_KEY:
+            genai.configure(api_key=GOOGLE_API_KEY)
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            logger.info("Gemini AI ready.")
+        else:
+            model = None
+    except Exception:
         model = None
-except Exception:
-    model = None
 
 # Optional Supabase
 try:
@@ -39,18 +42,57 @@ try:
 except Exception:
     supabase = None
 
-app = FastAPI(title="TourInHand", version="2.0")
+app = FastAPI(
+    title="TourInHand",
+    description="AI-powered safe, smart, and sustainable travel planner for students.",
+    version="2.0.1"
+)
+
+# ── CORS Setup ───────────────────────────────────────────────────────────────
+# Allow requests from frontend development ports and local hosting
+origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8000",
+    "*", # Robust fallback for hackathon environments
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# ── Static Files & Templates ────────────────────────────────────────────────
+# Ensure static folder is mounted correctly for CSS/JS assets
+static_path = os.path.join(os.path.dirname(__file__), "static")
+if not os.path.exists(static_path):
+    os.makedirs(static_path, exist_ok=True)
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+
+# ── Global Exception Handling ───────────────────────────────────────────────
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global error: {exc}", exc_info=True)
+    return HTMLResponse(
+        content=f"<html><body><h1>Something went wrong</h1><p>{str(exc)}</p></body></html>",
+        status_code=500
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return HTMLResponse(
+        content=f"<html><body><h1>{exc.status_code}</h1><p>{exc.detail}</p></body></html>",
+        status_code=exc.status_code
+    )
 
 
 # ── Pydantic Models ──────────────────────────────────────────────────────────
@@ -62,6 +104,7 @@ class ItineraryRequest(BaseModel):
     days: str = "3"
     user_budget: int = 0           # user's total budget in ₹; 0 = not provided
     selected_places: List[str] = [] # names of user-picked destinations; empty = use interests/all
+    travel_style: str = "chill"    # backpacking | chill | adventure | foodie
 
 class SaveTripRequest(BaseModel):
     user_id: str
@@ -83,10 +126,16 @@ async def home(request: Request):
 async def dashboard(request: Request):
     cities = data.get_dummy_cities()
     widgets = data.get_dashboard_widgets()
+    saved_trips = data.get_mock_saved_trips()
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
-        context={"title": "Dashboard", "cities": cities, "widgets": widgets}
+        context={
+            "title": "Dashboard", 
+            "cities": cities, 
+            "widgets": widgets,
+            "saved_trips_count": len(saved_trips)
+        }
     )
 
 @app.get("/result-view", response_class=HTMLResponse)
@@ -248,12 +297,63 @@ def smart_sort_places(places: list, days: int) -> list:
         )
     )
 
-    # Cap at 3 places/day so no single day feels overwhelming
-    max_places = days * 3
+    # Cap at 5 places/day globally to stay comfortable but allow more flexibility
+    # especially when users manually pick places
+    max_places = max(days * 5, len(places) if places else 0)
     return sorted_places[:max_places]
 
 
+def smart_schedule_places(places: list, trip_days: int) -> list:
+    """
+    Stamps start_time and end_time on every place in-place.
+    Rules:
+      - Day 1 starts at 09:00 AM; each subsequent day also resets to 09:00 AM.
+      - Duration parsed from place['duration'] (e.g. '1.5 hrs', '90 min').
+      - 35-minute travel buffer injected between consecutive activities.
+      - Times formatted as 12-hour IST (09:00 AM – 11:30 AM).
+    """
+    import re as _re
+
+    def parse_duration_mins(dur_str: str) -> int:
+        if not dur_str:
+            return 90
+        s = dur_str.lower()
+        m = _re.search(r'([\d.]+)\s*hr', s)
+        if m:
+            return int(float(m.group(1)) * 60)
+        m = _re.search(r'([\d]+)\s*min', s)
+        if m:
+            return int(m.group(1))
+        return 90
+
+    def mins_to_12hr(total_mins: int) -> str:
+        h  = (total_mins // 60) % 24
+        mn = total_mins % 60
+        sfx = 'AM' if h < 12 else 'PM'
+        h12 = h % 12 or 12
+        return f"{h12:02d}:{mn:02d} {sfx}"
+
+    TRAVEL_BUFFER = 35
+    DAY_START     = 9 * 60          # 09:00 AM
+    per_day = math.ceil(len(places) / trip_days) if trip_days > 0 else len(places)
+    cursor  = DAY_START
+
+    for i, p in enumerate(places):
+        local_idx = i % per_day if per_day else i
+        if local_idx == 0:          # new day — reset clock
+            cursor = DAY_START
+
+        dur_mins    = parse_duration_mins(p.get('duration', '1.5 hrs'))
+        p['start_time'] = mins_to_12hr(cursor)
+        p['end_time']   = mins_to_12hr(cursor + dur_mins)
+        p['day_index']  = i // per_day if per_day else 0
+        cursor = cursor + dur_mins + TRAVEL_BUFFER
+
+    return places
+
+
 # ── API Routes ────────────────────────────────────────────────────────────────
+
 
 @app.get("/api/cities")
 def get_cities():
@@ -303,135 +403,187 @@ def get_global_data():
 
 @app.post("/api/generate_itinerary")
 def generate_itinerary(req: ItineraryRequest):
-    city = data.CITIES.get(req.city_id.lower())
-    if not city:
-        raise HTTPException(status_code=404, detail="City not found")
+    try:
+        city = data.CITIES.get(req.city_id.lower())
+        if not city:
+            raise HTTPException(status_code=404, detail="City not found")
 
-    result = dict(city)
+        result = dict(city)
 
-    # ── Place Selection Logic ──────────────────────────────────────
-    all_places = city.get("places", [])
+        # ── Place Selection Logic ──────────────────────────────────────
+        all_places = city.get("places", [])
 
-    if req.selected_places:
-        # Priority 1: User explicitly picked destinations — honour their choice
-        # Preserve the order the user selected them, then apply smart time-sort
-        name_set = set(req.selected_places)
-        places = [p for p in all_places if p["name"] in name_set]
-        logger.info(f"Using {len(places)} user-selected places for {city['name']}")
-    elif req.interests:
-        # Priority 2: Filter by interest categories (existing behaviour)
-        places = [p for p in all_places if p["category"] in req.interests]
-        if not places:
-            places = all_places[:3]  # fallback if no match
-        logger.info(f"Using {len(places)} interest-filtered places for {city['name']}")
-    else:
-        # Priority 3: Use all places (fallback)
-        places = list(all_places)
-        logger.info(f"Using all {len(places)} places for {city['name']}")
+        if req.selected_places:
+            # Priority 1: User explicitly picked destinations — honour their choice
+            name_set = set(req.selected_places)
+            places = [p for p in all_places if p["name"] in name_set]
+            logger.info(f"Using {len(places)} user-selected places for {city['name']}")
+        elif req.interests:
+            # Priority 2: Filter by interest categories
+            places = [p for p in all_places if p["category"] in req.interests]
+            if not places:
+                places = all_places[:3]  # fallback
+            logger.info(f"Using {len(places)} interest-filtered places for {city['name']}")
+        else:
+            # Priority 3: Use all places
+            places = list(all_places)
+            logger.info(f"Using all {len(places)} places for {city['name']}")
 
-    # Apply smart day-wise ordering (time-slot + popularity)
-    trip_days = int(req.days) if req.days.isdigit() else 3
-    places = smart_sort_places(places, trip_days)
+        # Apply smart day-wise ordering
+        trip_days = int(req.days) if req.days.isdigit() else 3
+        places = smart_sort_places(places, trip_days)
 
-    # Mark each place with its numeric cost for frontend display
-    for p in places:
-        p["numeric_cost"] = parse_cost_to_int(p.get("cost", "Free"))
+        # Stamp start/end times on every place
+        places = smart_schedule_places(places, trip_days)
 
-    # ── Dynamic Budget Calculation ─────────────────────────────────
-    min_bpd = city.get("min_budget_per_day", 1500)
+        # Mark each place with its numeric cost
+        for p in places:
+            p["numeric_cost"] = parse_cost_to_int(p.get("cost", "Free"))
 
-    # Step 1: Determine the total usable trip budget
-    total_estimated_budget = calculate_total_trip_cost(
-        places=places,
-        trip_days=trip_days,
-        user_budget=req.user_budget,
-        min_budget_per_day=min_bpd,
-        budget_style=req.budget,
-    )
+        # ── Dynamic Budget Calculation ─────────────────────────────────
+        min_bpd = city.get("min_budget_per_day", 1500)
+        total_estimated_budget = calculate_total_trip_cost(
+            places=places,
+            trip_days=trip_days,
+            user_budget=req.user_budget,
+            min_budget_per_day=min_bpd,
+            budget_style=req.budget,
+        )
+        per_day_budget = calculate_per_day_budget(total_estimated_budget, trip_days)
+        day_budgets = distribute_budget(places, trip_days, total_estimated_budget)
 
-    # Step 2: Per-day average (simple and clean for the header card)
-    per_day_budget = calculate_per_day_budget(total_estimated_budget, trip_days)
+        min_total = min_bpd * trip_days
+        budget_warning = (req.user_budget > 0 and req.user_budget < min_total)
 
-    # Step 3: Day-wise breakdown (proportional to places per day)
-    day_budgets = distribute_budget(places, trip_days, total_estimated_budget)
+        # ── Advanced AI Features ───────────────────────────────────────
+        risk_level = "Safe"
+        safety_alerts = []
+        city_safety = city.get("safety_score", 85)
+        
+        if city_safety < 70:
+            risk_level = "High"
+            safety_alerts.append("Exercise extreme caution in isolated areas after dark.")
+        elif city_safety < 85:
+            risk_level = "Moderate"
+            safety_alerts.append("Avoid unfamiliar shortcuts after 8 PM.")
+        else:
+            risk_level = "Safe"
+            safety_alerts.append("Generally safe city. Maintain basic awareness at night.")
 
-    # Budget warning: user entered a budget but it's less than the minimum
-    min_total = min_bpd * trip_days
-    budget_warning = (
-        req.user_budget > 0 and req.user_budget < min_total
-    )
+        # Simulate dynamic weather/area risks
+        if "Indore" in city['name']:
+            safety_alerts.append("Heavy traffic zone: Stay on main roads near Sarafa.")
+        elif "Shri Balaji" in str(places): # Example trigger
+            safety_alerts.append("Dress modestly for temple visits in the area.")
+        
+        if "Dehradun" in city['name'] or "Shimla" in city['name']:
+             safety_alerts.append("Rain risk area: High chance of sudden showers.")
 
-    logger.info(
-        f"[Budget] {city['name']} | {trip_days}d | user=₹{req.user_budget} | "
-        f"total=₹{total_estimated_budget} | per_day=₹{per_day_budget} | "
-        f"days={day_budgets} | warning={budget_warning}"
-    )
+        # Eco Score Logic (0-100)
+        eco_base = city.get("eco_score", 70)
+        nature_hits = len([p for p in places if p["category"] in ["Nature", "Heritage"]])
+        eco_final = min(100, eco_base + (nature_hits * 5))
+        
+        # ── Smart AI Trip Summary (Gemini Powered) ────────────────────
+        prompt = (
+            f"Generate a friendly, concise 3-sentence travel summary for a {req.travel_style} trip to {city['name']} for {req.days} days. "
+            f"Include weather advice (best for {city.get('best_time', 'the current season')}), clothing tips, and safety level ({risk_level}). "
+            f"Mention the Eco-Score of {eco_final}/100. End with a student-friendly note."
+        )
+        
+        final_summary = ""
+        if model:
+            try:
+                response = model.generate_content(prompt)
+                final_summary = response.text.strip()
+            except Exception as e:
+                logger.error(f"Gemini error: {e}")
+        
+        if not final_summary:
+            # High-quality fallback summary
+            summary_paragraphs = [
+                f"Your {req.travel_style} trip to {city['name']} looks fantastic!",
+                f"Recommended Gear: Pack {('light linens' if 'Indore' in city['name'] else 'warm layers')} and sturdy walking shoes.",
+                f"Sustainability: Your trip has an Eco-Score of {eco_final}/100.",
+                f"Safety & Local Tips: {city['name']} is currently {risk_level.lower()}."
+            ]
+            if req.travel_style == "foodie":
+                summary_paragraphs.append("Pro Tip: Carry hand sanitizer and always drink bottled water at food stalls.")
+            elif req.travel_style == "adventure":
+                summary_paragraphs.append("Adventure Note: Check weather forecasts 2 hours before any treks.")
+            elif req.travel_style == "backpacking":
+                summary_paragraphs.append("Budget Tip: Use local buses and shared e-rickshaws to save big.")
+            summary_paragraphs.append("Stay safe and enjoy your TourInHand journey!")
+            final_summary = " ".join(summary_paragraphs)
 
-    result["places"]               = places
-    result["day_budgets"]          = day_budgets
-    result["total_estimated_budget"] = total_estimated_budget
-    result["per_day_budget"]       = per_day_budget
-    result["budget_warning"]       = budget_warning
-    # Keep for backward compat (old JS reads this)
-    result["calculated_total"]     = total_estimated_budget
+        # ── Assemble Result ──────────────────────────────────────────
+        result["places"]               = places
+        result["day_budgets"]          = day_budgets
+        result["total_estimated_budget"] = total_estimated_budget
+        result["per_day_budget"]       = per_day_budget
+        result["budget_warning"]       = budget_warning
+        result["ai_insights"] = {
+            "summary": final_summary,
+            "risk_level": risk_level,
+            "safety_alerts": safety_alerts,
+            "eco_score": eco_final,
+            "travel_style": req.travel_style
+        }
+        result["calculated_total"]     = total_estimated_budget
 
-    # ── Budget Analysis (for sidebar card) ───────────────────────
-    user_bud = req.user_budget or 0
-    budget_analysis = {
-        "min_per_day":  min_bpd,
-        "min_total":    min_total,
-        "days":         trip_days,
-        "user_budget":  user_bud,
-        "sufficient":   user_bud >= min_total if user_bud > 0 else None,
-        "shortfall":    max(0, min_total - user_bud) if user_bud > 0 else 0,
-    }
-    result["budget_analysis"] = budget_analysis
+        # ── Budget Analysis ──────────────────────────────────────────
+        user_bud = req.user_budget or 0
+        result["budget_analysis"] = {
+            "min_per_day":  min_bpd,
+            "min_total":    min_total,
+            "days":         trip_days,
+            "user_budget":  user_bud,
+            "sufficient":   user_bud >= min_total if user_bud > 0 else None,
+            "shortfall":    max(0, min_total - user_bud) if user_bud > 0 else 0,
+        }
 
-    # ── Recommended Days & Best Visit Times ──────────────────────
-    # recommended_days = how many days needed to cover ALL city places
-    # (3 places per day is comfortable, so ceil(total / 3))
-    all_city_places = city.get("places", [])
-    recommended_days = math.ceil(len(all_city_places) / 3) if all_city_places else trip_days
+        # ── Recommended Days & Best Visit Times ──────────────────────
+        all_city_places = city.get("places", [])
+        recommended_days = math.ceil(len(all_city_places) / 3) if all_city_places else trip_days
 
-    # Build a time-slot → place names mapping for "best time to visit" display
-    from collections import defaultdict
-    slot_map = defaultdict(list)
-    for p in all_city_places:
-        slot = p.get("time_slot", "Any")
-        slot_map[slot].append(p["name"])
+        from collections import defaultdict
+        slot_map = defaultdict(list)
+        for p in all_city_places:
+            slot = p.get("time_slot", "Any")
+            slot_map[slot].append(p["name"])
 
-    # Format: [{ slot, places, icon }] sorted Morning → Afternoon → Evening → Night
-    SLOT_ORDER = {"Morning": 0, "Afternoon": 1, "Any": 1, "Evening": 2, "Night": 3}
-    SLOT_ICONS = {"Morning": "🌅", "Afternoon": "☀️", "Evening": "🌆", "Night": "🌙", "Any": "🕐"}
-    best_visit_times = sorted(
-        [
-            {
-                "slot":   slot,
-                "icon":   SLOT_ICONS.get(slot, "🕐"),
-                "places": names,
-            }
+        SLOT_ORDER = {"Morning": 0, "Afternoon": 1, "Any": 1, "Evening": 2, "Night": 3}
+        SLOT_ICONS = {"Morning": "🌅", "Afternoon": "☀️", "Evening": "🌆", "Night": "🌙", "Any": "🕐"}
+        result["best_visit_times"] = sorted([
+            {"slot": slot, "icon": SLOT_ICONS.get(slot, "🕐"), "places": names}
             for slot, names in slot_map.items()
-        ],
-        key=lambda x: SLOT_ORDER.get(x["slot"], 1),
-    )
+        ], key=lambda x: SLOT_ORDER.get(x["slot"], 1))
 
-    result["recommended_days"]  = recommended_days
-    result["best_visit_times"]  = best_visit_times
-    result["best_time"]         = city.get("best_time", "October to March")
+        result["recommended_days"]  = recommended_days
+        result["best_time"]         = city.get("best_time", "October to March")
 
-    logger.info(f"[City Info] {city['name']} | recommended_days={recommended_days} | best_time={result['best_time']}")
+        # ── AI Tagline ───────────────────────────────────────────────
+        if model:
+            try:
+                prompt = f"One catchy sentence travel tagline for {req.days}-day {req.budget} trip to {city['name']} focusing on {', '.join(req.interests) or 'exploration'}."
+                result["tagline"] = model.generate_content(prompt).text.strip()
+            except Exception as e:
+                logger.error(f"AI error: {e}")
+                result["tagline"] = f"Your {req.days}-Day {req.budget} Plan for {city['name']}"
+        else:
+            result["tagline"] = f"Your {req.days}-Day {req.budget} Plan for {city['name']} (AI Offline)"
 
-    if model:
-        try:
-            prompt = f"One catchy sentence travel tagline for {req.days}-day {req.budget} trip to {city['name']} focusing on {', '.join(req.interests) or 'exploration'}."
-            result["tagline"] = model.generate_content(prompt).text.strip()
-        except Exception as e:
-            logger.error(f"AI error: {e}")
-            result["tagline"] = f"Your {req.days}-Day {req.budget} Plan for {city['name']}"
-    else:
-        result["tagline"] = f"Your {req.days}-Day {req.budget} Plan for {city['name']} (AI Offline)"
-
-    return result
+        return result
+    except Exception as e:
+        logger.error(f"Itinerary generation error: {e}", exc_info=True)
+        # Fallback to a basic response so frontend doesn't crash
+        return {
+            "status": "error",
+            "message": str(e),
+            "name": "Fallback Itinerary",
+            "places": [],
+            "tagline": "Planning error. Please refresh."
+        }
 
 @app.post("/api/saved_trips")
 def save_trip(req: SaveTripRequest):
@@ -449,14 +601,146 @@ def save_trip(req: SaveTripRequest):
         return {"status": "success", "message": f"Cached locally. Error: {str(e)}"}
 
 @app.get("/api/share_ride_matches")
-def share_ride_matches():
-    return data.get_ride_matches()
+def share_ride_matches(budget: int = 0):
+    """Return dummy co-traveler matches. If budget provided, split fares are calculated dynamically."""
+    matches = data.get_ride_matches()
+    if budget > 0:
+        riders = 3
+        for i, m in enumerate(matches):
+            # Split cost = (budget / riders) with small variance per person
+            base = round(budget / riders)
+            variance = [0, 25, 50][i]
+            m["split_cost"] = base + variance
+            m["money_saved"] = round(budget - m["split_cost"])
+    return matches
+
+@app.post("/api/update_carbon_score")
+async def update_carbon_score(payload: dict):
+    """Return an updated eco score when ride sharing is activated."""
+    current_score = payload.get("current_score", 70)
+    ride_selected = payload.get("ride_selected", False)
+    if ride_selected:
+        new_score = min(100, current_score + 15)
+        co2_offset = "3.2 kg"
+    else:
+        new_score = max(0, current_score - 15)
+        co2_offset = "0 kg"
+    return {
+        "eco_score": new_score,
+        "co2_offset": co2_offset,
+        "message": "Great choice! Sharing a ride saved 3.2 kg of CO₂." if ride_selected else "Eco score updated."
+    }
 
 @app.post("/api/delete_trip")
 def delete_trip(payload: dict):
     return {"status": "success", "message": "Trip deleted."}
 
 
+# ── Pydantic model for re-evaluate ─────────────────────────────────────────
+class ReEvalRequest(BaseModel):
+    places: list          # current places with start_time / end_time
+    user_input: str       # natural language shift, e.g. 'Spent 1 hour extra at Chappan'
+    trip_days: int = 3
+
+
+@app.post("/api/re_evaluate")
+def re_evaluate(req: ReEvalRequest):
+    """
+    Parses a natural-language delay instruction from the user,
+    finds which place caused the delay, and shifts all subsequent
+    activity times accordingly.
+
+    Returns: { places, warnings }
+      places   — updated list with new start_time / end_time
+      warnings — list of closing_soon messages if any place > 22:00
+    """
+    import re as _re
+
+    # ── 1. Extract delay in minutes ────────────────────────────────────
+    txt = req.user_input.lower()
+    delay_mins = 0
+
+    m = _re.search(r'(\d+(?:\.\d+)?)\s*hour', txt)
+    if m:
+        delay_mins = int(float(m.group(1)) * 60)
+    else:
+        m = _re.search(r'(\d+)\s*min', txt)
+        if m:
+            delay_mins = int(m.group(1))
+
+    if delay_mins == 0:
+        return {"places": req.places, "warnings": [], "message": "No delay detected in input."}
+
+    # ── 2. Find the affected place (first name match) ──────────────────
+    pivot_idx = 0  # default: shift everything from start
+    for i, p in enumerate(req.places):
+        if p.get("name", "").lower() in txt:
+            pivot_idx = i
+            break
+
+    # ── 3. Helper: parse '09:00 AM' → minutes from midnight ───────────
+    def parse_12hr(t: str) -> int:
+        m2 = _re.match(r'(\d{1,2}):(\d{2})\s*(AM|PM)', t.strip(), _re.IGNORECASE)
+        if not m2:
+            return 9 * 60
+        h, mn, sfx = int(m2.group(1)), int(m2.group(2)), m2.group(3).upper()
+        if sfx == 'PM' and h != 12:
+            h += 12
+        elif sfx == 'AM' and h == 12:
+            h = 0
+        return h * 60 + mn
+
+    def mins_to_12hr(total: int) -> str:
+        h = (total // 60) % 24
+        mn = total % 60
+        sfx = 'AM' if h < 12 else 'PM'
+        h12 = h % 12 or 12
+        return f"{h12:02d}:{mn:02d} {sfx}"
+
+    # ── 4. Shift all places from pivot_idx + 1 ─────────────────────────
+    updated = list(req.places)
+    # First shift the pivot place's end_time
+    pivot = dict(updated[pivot_idx])
+    pivot_end = parse_12hr(pivot.get("end_time", "10:00 AM")) + delay_mins
+    pivot["end_time"] = mins_to_12hr(pivot_end)
+    updated[pivot_idx] = pivot
+
+    # Cascade shift to subsequent places
+    TRAVEL_BUFFER = 35
+    cursor = pivot_end + TRAVEL_BUFFER
+    for i in range(pivot_idx + 1, len(updated)):
+        p = dict(updated[i])
+        st_mins = parse_12hr(p.get("start_time", "09:00 AM"))
+        et_mins = parse_12hr(p.get("end_time",   "10:30 AM"))
+        dur_mins = et_mins - st_mins if et_mins > st_mins else 90
+        p["start_time"] = mins_to_12hr(cursor)
+        p["end_time"]   = mins_to_12hr(cursor + dur_mins)
+        cursor = cursor + dur_mins + TRAVEL_BUFFER
+        updated[i] = p
+
+    # ── 5. Generate closing_soon warnings (>= 22:00 = 1320 mins) ──────
+    LATE_THRESHOLD = 22 * 60  # 10 PM
+    warnings = []
+    for p in updated[pivot_idx:]:
+        if parse_12hr(p.get("start_time", "09:00 AM")) >= LATE_THRESHOLD:
+            warnings.append({
+                "place": p.get("name", "Unknown"),
+                "closing_soon": True,
+                "message": f"{p['name']} starts after 10 PM — consider visiting tomorrow."
+            })
+
+    return {
+        "places": updated,
+        "warnings": warnings,
+        "delay_applied_mins": delay_mins,
+        "message": f"Shifted {len(updated) - pivot_idx - 1} activities by {delay_mins} min."
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    try:
+        logger.info("Starting TourInHand Backend on http://localhost:8000")
+        uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
+    except Exception as e:
+        logger.error(f"Could not start server: {e}")
