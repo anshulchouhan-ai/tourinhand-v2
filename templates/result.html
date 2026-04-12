@@ -1,170 +1,331 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="result-page" id="result-root">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+  <main class="flex flex-1 flex-col">
+    <div class="flex w-full max-w-[1440px] mx-auto flex-col lg:grid lg:grid-cols-[240px_1fr_300px] gap-8 p-6 lg:p-10">
 
-  <!-- ── Result Hero ── -->
-  <section class="result-hero" id="result-hero-section">
-    <div class="result-hero-inner">
-      <div class="result-hero-meta">
-        <span class="result-badge" id="result-badge">✈️ AI-Generated Itinerary</span>
-        <div class="result-hero-actions-top">
-          <button class="btn btn-ghost btn-sm" id="share-btn" onclick="shareRide()">🔗 Share</button>
-          <button class="btn btn-primary btn-sm" id="save-trip-btn">💾 Save Trip</button>
-        </div>
-      </div>
-      <h1 class="result-hero-title" id="result-city-name">Your Smart Itinerary</h1>
-      <p class="result-tagline" id="result-tagline">Your personalized AI travel plan is ready below.</p>
-      <div class="result-tag-row" id="result-tag-row">
-        <span class="result-tag result-tag--blue" id="result-tag-days">📅 3 Days</span>
-        <span class="result-tag result-tag--amber" id="result-tag-budget">💰 Standard</span>
-        <span class="result-tag result-tag--purple">👤 Solo Travel</span>
-      </div>
-    </div>
-    <div class="result-hero-bg"></div>
-  </section>
-
-  <!-- ── Summary Cards ── -->
-  <div class="result-summary-row">
-    <div class="result-summary-card result-summary-card--destination">
-      <div class="result-summary-icon">📍</div>
-      <div>
-        <div class="result-summary-label">Destination</div>
-        <div class="result-summary-value" id="summary-destination">–</div>
-      </div>
-    </div>
-    <div class="result-summary-card result-summary-card--safety">
-      <div class="result-summary-icon">🛡️</div>
-      <div>
-        <div class="result-summary-label">Safety Score</div>
-        <div class="result-summary-value" id="hl-safety">–</div>
-      </div>
-    </div>
-    <div class="result-summary-card result-summary-card--eco">
-      <div class="result-summary-icon">🌱</div>
-      <div>
-        <div class="result-summary-label">Eco Score</div>
-        <div class="result-summary-value" id="hl-eco">–</div>
-      </div>
-    </div>
-    <div class="result-summary-card result-summary-card--budget">
-      <div class="result-summary-icon">💰</div>
-      <div>
-        <div class="result-summary-label">Est. Budget</div>
-        <div class="result-summary-value" id="hl-budget">–</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Two-column layout ── -->
-  <div class="result-layout" id="result-layout">
-
-    <!-- Left: Itinerary -->
-    <div class="result-main">
-      <div class="result-section-header">
-        <h2 class="result-section-title">📅 Day-by-Day Itinerary</h2>
-        <span class="badge" id="result-place-count"></span>
-      </div>
-      <div class="itinerary-list" id="itinerary-days" aria-label="Day-by-day itinerary">
-        <!-- JS renders here -->
-        <div class="empty-state" id="result-empty-state">
-          <div class="empty-icon">🗺️</div>
-          <h3 class="empty-title">No itinerary loaded</h3>
-          <p class="empty-desc">Head to the dashboard, pick a city and generate your plan.</p>
-          <a href="/dashboard" class="btn btn-primary" id="result-go-dashboard">Plan a Trip ✨</a>
-        </div>
-      </div>
-    </div>
-
-    <!-- Right: Sidebar -->
-    <aside class="result-sidebar">
-
-      <!-- Local Tips -->
-      <div class="sidebar-card">
-        <h3 class="sidebar-card-title">💡 Local Tips</h3>
-        <div class="tips-list" id="local-tips">
-          <div class="tip-item">
-            <span class="tip-icon">💡</span>
-            <span>Tips will appear once you generate an itinerary.</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Smart Insights -->
-      <div class="sidebar-card sidebar-card--highlight">
-        <h3 class="sidebar-card-title">🧠 Smart Insights</h3>
-        <div class="insights-list">
-          <div class="insight-item">
-            <span class="insight-icon">⚡</span>
-            <div>
-              <div class="insight-label">Trip Efficiency</div>
-              <div class="insight-bar-wrap"><div class="insight-bar insight-bar--blue" id="efficiency-bar" style="width:78%"></div></div>
-            </div>
-          </div>
-          <div class="insight-item">
-            <span class="insight-icon">🌱</span>
-            <div>
-              <div class="insight-label">Eco Friendliness</div>
-              <div class="insight-bar-wrap"><div class="insight-bar insight-bar--green" id="eco-bar" style="width:60%"></div></div>
-            </div>
-          </div>
-          <div class="insight-item">
-            <span class="insight-icon">🛡️</span>
-            <div>
-              <div class="insight-label">Safety Index</div>
-              <div class="insight-bar-wrap"><div class="insight-bar insight-bar--teal" id="safety-bar" style="width:82%"></div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Emergency Contacts -->
-      <div class="sidebar-card sidebar-card--emergency">
-        <h3 class="sidebar-card-title" style="color:var(--color-error)">🚨 Emergency</h3>
-        <div class="emergency-mini-grid">
-          {% for e in emergency %}
-          <a href="tel:{{ e.dial }}" class="emergency-mini-item">
-            <span class="emergency-mini-number">{{ e.dial }}</span>
-            <span class="emergency-mini-label">{{ e.service }}</span>
+      <!-- Sidebar Navigation -->
+      <aside class="hidden lg:flex flex-col gap-8">
+        <nav class="flex flex-col gap-2">
+          <a href="/dashboard"
+            class="flex items-center gap-3 px-5 py-3.5 rounded-2xl text-slate-500 hover:bg-white hover:shadow-sm transition-all text-sm font-bold">
+            <span class="material-symbols-outlined text-xl">explore</span> Dashboard
           </a>
-          {% endfor %}
+          <a href="#"
+            class="flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white shadow-md text-primary text-sm font-black">
+            <span class="material-symbols-outlined text-xl" style="font-variation-settings:'FILL' 1;">map</span> My
+            Itinerary
+          </a>
+        </nav>
+
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col gap-4">
+          <p class="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Trip Info</p>
+          <div class="flex items-center gap-3">
+            <div class="size-8 rounded-lg bg-blue-50 flex items-center justify-center text-primary">
+              <span class="material-symbols-outlined text-lg">location_on</span>
+            </div>
+            <span class="font-bold text-sm text-slate-800" id="nav-city-name">—</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="size-8 rounded-lg bg-orange-50 flex items-center justify-center text-secondary">
+              <span class="material-symbols-outlined text-lg">schedule</span>
+            </div>
+            <span class="text-sm font-bold text-slate-600" id="nav-days-label">— Days</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <section class="flex-1 flex flex-col gap-8 pb-32">
+
+        <!-- Hero Section -->
+        <div
+          class="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div class="flex flex-col gap-3 text-center md:text-left">
+            <div class="flex items-center gap-3 justify-center md:justify-start">
+              <span
+                class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">Smart
+                Plan</span>
+              <span
+                class="bg-slate-50 text-slate-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider"
+                id="result-tag-days">— Days</span>
+            </div>
+            <h1 class="text-slate-900 text-3xl md:text-4xl font-headline font-black tracking-tight"
+              id="result-city-name">Your Smart Itinerary</h1>
+            <p class="text-slate-500 text-sm font-medium" id="result-tagline">Personalized experience optimized by
+              TourInHand AI.</p>
+          </div>
+          <button onclick="openReplanModal()"
+            class="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-black transition-all shadow-xl shadow-slate-200">
+            <span class="material-symbols-outlined text-lg">autorenew</span> REPLAN
+          </button>
+        </div>
+
+        <!-- Itinerary Canvas -->
+        <div
+          class="canvas-dot-grid bg-white rounded-[3rem] p-6 md:p-12 border border-slate-100 shadow-xl shadow-slate-200/50 relative">
+          <div class="max-w-2xl mx-auto">
+            <div class="flex items-center justify-between mb-12">
+              <div>
+                <h3 class="text-slate-900 text-xl font-headline font-black tracking-tight">📅 Itinerary Timeline</h3>
+                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">AI Optimized Sequence
+                </p>
+              </div>
+            </div>
+
+            <div id="itinerary-days" class="timeline-lane" aria-label="Day-by-day itinerary">
+              <div class="timeline-lane-line"></div>
+              <!-- Empty state shown by default or if no data -->
+              <div id="result-empty-state" class="py-20 text-center">
+                <div class="text-6xl mb-6">🏜️</div>
+                <h3 class="font-headline font-black text-2xl mb-3 text-slate-800">No Plan Details</h3>
+                <p class="text-slate-500 text-sm mb-8">Generate a new plan from the dashboard.</p>
+                <a href="/dashboard"
+                  class="inline-flex items-center gap-3 px-8 py-3.5 bg-primary text-white rounded-2xl font-black shadow-xl shadow-primary/20">
+                  <span class="material-symbols-outlined">explore</span> Start Planning
+                </a>
+              </div>
+            </div>
+
+            <div class="mt-12 hidden" id="add-stop-cta">
+              <button onclick="openPlacePicker()" class="add-dest-nc-btn group">
+                <div class="add-dest-nc-icon group-hover:scale-110 transition-transform">
+                  <span class="material-symbols-outlined text-2xl">add_location_alt</span>
+                </div>
+                <div class="text-center">
+                  <p class="font-black text-slate-800">Add Destination</p>
+                  <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Smart Suggestions</p>
+                </div>
+              </button>
+            </div>
+
+            <div class="mt-20 pt-10 border-t border-slate-100">
+              <div class="flex items-center gap-3 mb-6">
+                <span class="material-symbols-outlined text-slate-300">sticky_note_2</span>
+                <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Trip Plan Notes</span>
+              </div>
+              <div class="bg-slate-50 rounded-3xl p-6">
+                <textarea placeholder="Write down any reminders, packing lists, or notes here..."
+                  class="w-full min-h-[140px] bg-transparent border-none p-0 text-sm font-medium text-slate-600 focus:ring-0 placeholder:text-slate-300 resize-none"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Side: Insights & Tools -->
+      <aside class="flex flex-col gap-6">
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+          <h4 class="text-slate-900 font-headline font-black text-sm mb-4">🗺️ Destination Map</h4>
+          <div class="aspect-square bg-slate-100 rounded-2xl overflow-hidden mb-4 relative group cursor-pointer"
+            onclick="document.getElementById('result-map-link').click()">
+            <img id="result-map-img" alt="Map"
+              class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=400&q=60" />
+            <div
+              class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+              <span
+                class="material-symbols-outlined text-white text-3xl opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+            </div>
+          </div>
+          <a id="result-map-link" href="#" target="_blank" class="hidden">Open Maps</a>
+        </div>
+
+        <div id="best-visit-anchor"></div>
+
+        <div class="bg-slate-900 p-6 rounded-[2.5rem] text-white">
+          <h3 class="font-headline font-black text-xs text-blue-400 mb-6 uppercase tracking-widest">Smart Insights</h3>
+          <div class="insights-list">
+            <div class="insight-item">
+              <div class="insight-label text-slate-400"><span>Logistic Efficiency</span><span
+                  id="label-efficiency">—</span></div>
+              <div class="insight-bar-wrap bg-slate-800">
+                <div class="insight-bar bg-blue-500" id="efficiency-bar" style="width:0%"></div>
+              </div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-label text-slate-400"><span>Eco Score</span><span id="label-eco">—</span></div>
+              <div class="insight-bar-wrap bg-slate-800">
+                <div class="insight-bar bg-emerald-500" id="eco-bar" style="width:0%"></div>
+              </div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-label text-slate-400"><span>Safety Index</span><span id="label-safety">—</span></div>
+              <div class="insight-bar-wrap bg-slate-800">
+                <div class="insight-bar bg-cyan-500" id="safety-bar" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+          <h3 class="font-headline font-black text-sm text-slate-900 mb-5">💡 Local Tips</h3>
+          <div id="local-tips" class="flex flex-col gap-3">
+            <div
+              class="p-4 rounded-2xl bg-slate-50 text-[11px] font-medium text-slate-500 leading-relaxed border border-slate-100">
+              AI insights will appear here based on your destination and interests.
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6 rounded-[2rem] border border-red-100 bg-red-50/20">
+          <h3 class="font-headline font-black text-sm mb-5 flex items-center gap-2 text-red-700">
+            <span class="material-symbols-outlined text-lg">emergency</span> Emergency
+          </h3>
+          <div class="flex flex-col gap-2">
+            {% for e in emergency %}
+            <a href="tel:{{ e.dial }}"
+              class="flex items-center justify-between p-4 rounded-2xl bg-white border border-red-50 hover:border-red-200 transition-all shadow-sm">
+              <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ e.service }}</span>
+              <span class="font-black text-base text-red-600">{{ e.dial }}</span>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<div id="replan-modal" role="dialog" aria-modal="true" onclick="closeReplanModal(event)">
+  <div class="bg-white rounded-[40px] w-full max-w-md overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+    <div class="bg-slate-900 p-8 text-white">
+      <h2 class="font-headline font-black text-2xl tracking-tight">🔄 Replan Trip</h2>
+    </div>
+    <div class="p-8 flex flex-col gap-6">
+      <div class="flex flex-col gap-2">
+        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Travel Dates</label>
+        <div class="grid grid-cols-2 gap-3">
+          <input type="date" id="rp-from-date"
+            class="bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold text-slate-800 focus:ring-2" />
+          <input type="date" id="rp-to-date"
+            class="bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold text-slate-800 focus:ring-2" />
         </div>
       </div>
-
-      <!-- Back Button -->
-      <div class="result-back-actions">
-        <a href="/dashboard" class="btn btn-outline btn-block" id="back-to-dash">← Back to Dashboard</a>
-        <a href="/saved-trips" class="btn btn-ghost btn-block" id="view-saved-btn">🗂️ View Saved Trips</a>
+      <div class="flex flex-col gap-2">
+        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Budget Style</label>
+        <select id="rp-budget"
+          class="bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold text-slate-800 focus:ring-2">
+          <option value="Budget">Shoestring</option>
+          <option value="Standard" selected>Standard</option>
+          <option value="Premium">Premium</option>
+        </select>
       </div>
-
-    </aside>
+      <button onclick="submitReplan()"
+        class="w-full bg-primary text-white py-5 rounded-[22px] font-black text-sm shadow-2xl">
+        Generate New Plan
+      </button>
+    </div>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const layout = document.getElementById('result-layout');
-  if (window.innerWidth < 900 && layout) {
-    layout.style.gridTemplateColumns = '1fr';
+<style>
+  .canvas-dot-grid {
+    background-image: radial-gradient(circle, #cbd5e1 0.8px, transparent 0.8px);
+    background-size: 32px 32px;
   }
-  window.addEventListener('resize', () => {
-    if (layout) {
-      layout.style.gridTemplateColumns = window.innerWidth < 900 ? '1fr' : '1fr 340px';
+
+  .timeline-lane {
+    position: relative;
+  }
+
+  .timeline-lane-line {
+    position: absolute;
+    left: 17px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e2e8f0;
+    z-index: 0;
+  }
+
+  .timeline-entry {
+    position: relative;
+    padding-left: 52px;
+    padding-bottom: 28px;
+  }
+
+  .timeline-dot {
+    position: absolute;
+    left: 7px;
+    top: 24px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3.5px solid var(--brand-primary, #0053cc);
+    z-index: 10;
+    box-shadow: 0 0 0 4px #fff;
+  }
+
+  .timeline-dot--plain {
+    border-color: #cbd5e1;
+    width: 18px;
+    height: 18px;
+    left: 9px;
+  }
+
+  #replan-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(8px);
+    align-items: center;
+    justify-content: center;
+  }
+
+  #replan-modal.open {
+    display: flex;
+  }
+</style>
+<script>
+  function openReplanModal() { document.getElementById('replan-modal').classList.add('open'); document.body.style.overflow = 'hidden'; }
+  function closeReplanModal(e) { if (!e || e.target === document.getElementById('replan-modal')) { document.getElementById('replan-modal').classList.remove('open'); document.body.style.overflow = ''; } }
+
+  function submitReplan() {
+    const stored = sessionStorage.getItem('tih_result');
+    if (!stored) return;
+    const { data, opts } = JSON.parse(stored);
+    const fromDate = document.getElementById('rp-from-date').value;
+    const toDate = document.getElementById('rp-to-date').value;
+    const budget = document.getElementById('rp-budget').value;
+    if (!fromDate || !toDate) return;
+    const diff = Math.round((new Date(toDate) - new Date(fromDate)) / 86400000);
+    const days = Math.max(1, diff);
+    showLoader('Planning your new route… 🚀');
+    fetch('/api/generate_itinerary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        city_id: data.id || opts?.city_id || '',
+        interests: opts?.interests || [],
+        budget: budget,
+        days: String(days),
+        user_budget: opts?.user_budget || 0,
+        selected_places: [],
+      }),
+    })
+      .then(r => r.json())
+      .then(newData => {
+        sessionStorage.setItem('tih_result', JSON.stringify({ data: newData, opts: { ...opts, from_date: fromDate, to_date: toDate, days, budget } }));
+        window.location.reload();
+      });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initResultPage();
+    const stored = sessionStorage.getItem('tih_result');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      document.getElementById('nav-city-name').textContent = parsed.data.name || '—';
+      document.getElementById('nav-days-label').textContent = (parsed.opts.days || 3) + ' Days';
+      if ((parsed.data.places || []).length > 0) document.getElementById('add-stop-cta').classList.remove('hidden');
     }
   });
-  initResultPage();
-
-  const saveBtn = document.getElementById('save-trip-btn');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', () => {
-      const stored = sessionStorage.getItem('tih_result');
-      if (!stored) { showToast('No itinerary to save yet.','warning'); return; }
-      const { data } = JSON.parse(stored);
-      saveTrip(data);
-    });
-  }
-});
 </script>
 {% endblock %}

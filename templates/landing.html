@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block content %}
 <div class="landing-page">
@@ -10,20 +10,23 @@
         <span class="badge-dot"></span>
         <span>Introducing TourInHand v2.0</span>
       </div>
-      <h1 class="hero-title">
-        Travel Smarter.<br>
-        <span class="hero-title-highlight">Share Rides.</span><br>
-        Save More.
+
+      <h1 class="hero-title" style="font-weight: 800; letter-spacing: -0.5px; line-height: 1.08;">
+        Travel Smart.<br>
+        <span class="hero-title-highlight" style="font-weight: 900;">Spend Less.</span><br>
+        Stress Zero.
       </h1>
+
       <p class="hero-subtitle">
-        The AI-powered travel planner built for students and budget travelers.
-        Smart itineraries, safer exploration, and eco-friendly travel —
-        without the premium price tag.
+        Built for students who want better trips without overspending — smart plans, safer choices, and easy ride
+        sharing, all in one place.
       </p>
+
       <div class="hero-cta">
         <a href="/dashboard" class="btn btn-primary btn-lg" id="hero-plan-btn">✨ Plan My Trip</a>
         <a href="/saved-trips" class="btn btn-outline btn-lg" id="hero-trips-btn">🗂️ View Saved Trips</a>
       </div>
+
       <div class="hero-trust">
         <span class="trust-item">🛡️ Safety First</span>
         <span class="trust-divider">·</span>
@@ -34,6 +37,7 @@
         <span class="trust-item">🚗 Ride Sharing</span>
       </div>
     </div>
+
     <div class="hero-bg-blob hero-bg-blob--1"></div>
     <div class="hero-bg-blob hero-bg-blob--2"></div>
   </section>
@@ -41,27 +45,43 @@
   <!-- ── Feature Cards ── -->
   <section class="features-section">
     <div class="section-label">Why TourInHand?</div>
-    <h2 class="section-title">Everything a student traveler needs</h2>
+    <h2 class="section-title">"Everything a student traveler needs"</h2>
+
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon feature-icon--blue">🤖</div>
         <h3 class="feature-card-title">AI Smart Planning</h3>
-        <p class="feature-card-body">Smart itineraries tailored to your preferences, pace, interests, and budget — generated in seconds.</p>
+        <p class="feature-card-body">
+          Smart itineraries tailored to your preferences, pace, interests, and budget —
+          generated in seconds.
+        </p>
       </div>
+
       <div class="feature-card">
         <div class="feature-icon feature-icon--green">🚗</div>
         <h3 class="feature-card-title">Ride Sharing</h3>
-        <p class="feature-card-body">Match with fellow travelers on the same route and split transport costs while cutting your carbon footprint.</p>
+        <p class="feature-card-body">
+          Match with fellow travelers on the same route and split transport costs while
+          cutting your carbon footprint.
+        </p>
       </div>
+
       <div class="feature-card">
         <div class="feature-icon feature-icon--teal">🌱</div>
         <h3 class="feature-card-title">Eco-Friendly Travel</h3>
-        <p class="feature-card-body">Every destination is rated for eco-impact. Travel responsibly with carbon-aware recommendations.</p>
+        <p class="feature-card-body">
+          Every destination is rated for eco-impact. Travel responsibly with carbon-aware
+          recommendations.
+        </p>
       </div>
+
       <div class="feature-card">
         <div class="feature-icon feature-icon--amber">🛡️</div>
         <h3 class="feature-card-title">SafeTravel AI</h3>
-        <p class="feature-card-body">Real-time safety scores, emergency contacts, and crowd alerts keep you informed and protected on the go.</p>
+        <p class="feature-card-body">
+          Real-time safety scores, emergency contacts, and crowd alerts keep you informed and
+          protected on the go.
+        </p>
       </div>
     </div>
   </section>
@@ -71,21 +91,32 @@
     <div class="explainer-inner">
       <div class="section-label">How it works</div>
       <h2 class="section-title">Your perfect trip in 3 steps</h2>
+
       <div class="steps-grid">
         <div class="step-card">
           <div class="step-number">01</div>
           <h3 class="step-title">Choose a Destination</h3>
-          <p class="step-body">Pick from our curated cities — each with safety scores, eco ratings, and budget estimates.</p>
+          <p class="step-body">
+            Pick from our curated cities — each with safety scores, eco ratings, and budget
+            estimates.
+          </p>
         </div>
+
         <div class="step-card">
           <div class="step-number">02</div>
           <h3 class="step-title">Customize Your Plan</h3>
-          <p class="step-body">Select your interests, duration, and budget. Our AI builds a personalized itinerary instantly.</p>
+          <p class="step-body">
+            Select your interests, duration, and budget. Our AI builds a personalized itinerary
+            instantly.
+          </p>
         </div>
+
         <div class="step-card">
           <div class="step-number">03</div>
           <h3 class="step-title">Travel & Share</h3>
-          <p class="step-body">Save your trip, share rides with travelers on similar routes, and explore safely.</p>
+          <p class="step-body">
+            Save your trip, share rides with travelers on similar routes, and explore safely.
+          </p>
         </div>
       </div>
     </div>
@@ -95,8 +126,12 @@
   <section class="landing-cta-section">
     <div class="landing-cta-card">
       <h2 class="landing-cta-title">Ready to Travel Smarter?</h2>
-      <p class="landing-cta-sub">Join thousands of students planning better, safer, greener trips with TourInHand.</p>
-      <a href="/dashboard" class="btn btn-primary btn-lg" id="landing-final-cta">Start Planning — It's Free ✨</a>
+      <p class="landing-cta-sub">
+        Join thousands of students planning better, safer, greener trips with TourInHand.
+      </p>
+      <a href="/dashboard" class="btn btn-primary btn-lg" id="landing-final-cta">
+        Start Planning — It's Free ✨
+      </a>
     </div>
   </section>
 

@@ -7,40 +7,47 @@
   <title>TourInHand — {{ title }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
 </head>
 <body>
 
-  <!-- ── Top Navigation ── -->
-  <header class="navbar" id="main-navbar">
-    <div class="navbar-inner">
-      <a href="/" class="navbar-logo" aria-label="TourInHand home">
-        <span class="logo-icon">✈️</span>
-        <span class="logo-text">TourInHand</span>
+  <!-- ── Global Navigation ── -->
+  <header class="navbar sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-6 py-3 lg:px-12">
+    <div class="max-w-[1440px] mx-auto flex items-center justify-between">
+      <a href="/" class="flex items-center gap-3 text-primary group">
+        <div class="size-10 bg-primary flex items-center justify-center rounded-xl text-on-primary shadow-lg shadow-primary/30 transition-transform group-hover:scale-110">
+          <span class="material-symbols-outlined text-xl">travel_explore</span>
+        </div>
+        <span class="text-slate-900 text-xl font-headline font-black tracking-tight">TourInHand</span>
       </a>
 
-      <nav class="navbar-links" id="nav-links" aria-label="Main navigation">
-        <a href="/" class="nav-link {% if title == 'AI Travel Planner for Students' %}nav-link--active{% endif %}">Home</a>
-        <a href="/dashboard" class="nav-link {% if title == 'Dashboard' %}nav-link--active{% endif %}">Dashboard</a>
-        <a href="/saved-trips" class="nav-link {% if title == 'Saved Trips' %}nav-link--active{% endif %}">My Trips</a>
+      <nav class="hidden md:flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+        <a href="/" class="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all {% if title == 'AI Travel Planner for Students' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-500 hover:text-slate-900 hover:bg-white{% endif %}">Home</a>
+        <a href="/dashboard" class="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all {% if title == 'Dashboard' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-500 hover:text-slate-900 hover:bg-white{% endif %}">Dashboard</a>
+        <a href="/saved-trips" class="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all {% if title == 'Saved Trips' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-500 hover:text-slate-900 hover:bg-white{% endif %}">My Trips</a>
       </nav>
 
-      <div class="navbar-actions">
-        <button class="btn btn-ghost btn-sm" onclick="showEmergency()" id="nav-emergency-btn" title="Emergency Contacts">🚨</button>
-        <a href="/dashboard" class="btn btn-primary btn-sm" id="nav-plan-btn">Plan Trip</a>
-        <button class="hamburger" id="hamburger-btn" aria-label="Toggle menu" onclick="toggleMobileMenu()">
-          <span></span><span></span><span></span>
+      <div class="flex items-center gap-3">
+        <button class="size-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border border-slate-100" onclick="showEmergency()" title="Emergency Contacts">
+          <span class="material-symbols-outlined text-xl">emergency</span>
+        </button>
+        <a href="/dashboard" class="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-black text-sm shadow-xl shadow-primary/20 hover:bg-primary-dim transition-all active:scale-95">
+          Plan Trip
+        </a>
+        <button class="md:hidden size-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-500" onclick="toggleMobileMenu()">
+          <span class="material-symbols-outlined">menu</span>
         </button>
       </div>
     </div>
 
-    <!-- Mobile Menu -->
-    <div class="mobile-menu" id="mobile-menu">
-      <a href="/" class="mobile-nav-link">🏠 Home</a>
-      <a href="/dashboard" class="mobile-nav-link">📊 Dashboard</a>
-      <a href="/saved-trips" class="mobile-nav-link">🗂️ My Trips</a>
-      <a href="/dashboard" class="mobile-nav-link btn btn-primary" style="margin-top:8px">✨ Plan Trip</a>
+    <!-- Mobile Menu Container (JS driven) -->
+    <div id="mobile-menu" class="hidden md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-100 p-6 flex-col gap-4 shadow-2xl">
+      <a href="/" class="font-black text-slate-800">Home</a>
+      <a href="/dashboard" class="font-black text-slate-800">Dashboard</a>
+      <a href="/saved-trips" class="font-black text-slate-800">My Trips</a>
+      <a href="/dashboard" class="bg-primary text-white p-4 rounded-xl text-center font-black">Plan Trip</a>
     </div>
   </header>
 
