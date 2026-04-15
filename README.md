@@ -1,152 +1,136 @@
-# 🌍 TourInHand — AI-Powered Travel Planner
+# TourInHand v2
 
-> **AI-powered safe, smart, and sustainable travel planner for students and budget travelers.**
-
-![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green?logo=fastapi)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.x-blue?logo=tailwindcss)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+AI-powered safe, smart, and sustainable travel planner for students and budget travelers.
 
 ---
 
-## 🚀 Features
+## 🚀 Overview
 
-| Feature | Description |
-|---|---|
-| 🗓️ **Smart Timeline Engine** | Auto-schedules places with start/end times, 35-min travel buffers, day resets |
-| 🎨 **Travel Style Routing** | Backpacking / Chill / Adventure / Foodie mode — changes itinerary logic |
-| 🤖 **AI Trip Summary** | Gemini-powered friendly travel brief (weather, packing, safety, budget) |
-| 🚨 **Red Zone Alert System** | Safe / Moderate / High risk badges with contextual alerts |
-| 🌱 **Green Carbon Score** | Eco score 0–100 with ride-share boost integration |
-| 👥 **Co-Traveler Ride Matching** | Dummy co-traveler cards with split fare, CO₂ saved, Uber fallback |
-| 🔄 **AI Live Re-sync** | Natural language time-shift: *"Spent 1 hr extra at Rajwada"* — auto-cascades all times |
-| 🌤️ **Real-time Weather** | City-wise weather display on dashboard and result page |
-| 🏥 **Emergency Contacts** | City-based police, ambulance, and local guide quick-access cards |
-| 👁️ **Crowd Insights** | Low / Moderate / Peak crowd labels with best visiting time tips |
-| 💾 **Save Trips** | Save and revisit itineraries with full preview |
+TourInHand v2 is a travel planning system designed to help students and budget travelers plan trips efficiently by combining AI-powered itinerary generation with safety and decision-support insights.
+
+This repository contains:
+
+* an **earlier prototype / exploration of the idea**, and
+* a **refined hackathon build focused on core functionality**
+
+The hackathon version focuses on simplifying the product and rebuilding the most important features for a clean, explainable demo.
+
+---
+
+## 🎯 Hackathon Focus
+
+During the hackathon, the goal is to **rebuild and refine the core travel flow**, rather than presenting a fully finished product.
+
+### Core Features (Demo Scope)
+
+* 📍 User Input System
+  (city, budget, time, interests)
+
+* 🧠 AI Itinerary Generation
+  (simple, structured travel plan)
+
+* 🚨 Safety Score
+  (basic logic-based risk indicator)
+
+---
+
+## 🧩 Future Scope / Extended Features
+
+The following features were explored in earlier versions and may be expanded in future iterations:
+
+* Ride sharing / cost splitting
+* Live weather integration
+* Crowd density insights
+* Sustainability / carbon scoring
+* Smart re-planning
+* Saved trips & history
+* Advanced UI polish and personalization
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Backend:** FastAPI + Jinja2 Templates
-- **Frontend:** Vanilla JS + Tailwind CSS + Material Symbols
-- **AI:** Google Gemini 1.5 Flash (with smart fallback)
-- **Data:** Rule-based dummy data (no external DB required)
-- **Deployment:** Uvicorn ASGI server
+* **Frontend:** HTML, Tailwind CSS
+* **Backend:** FastAPI
+* **AI:** Gemini API
+* **Database:** Supabase (optional / extendable)
 
 ---
 
-## ⚡ Quick Start
+## 🧱 Project Structure
 
-```bash
-# 1. Clone the repo
-git clone https://github.com/anshulchouhan-ai/-HACKATHON_READY.git
-cd -HACKATHON_READY
+```
+tourinhand-v2/
+├── hackathon_build/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── data.py
+│   │   ├── templates/
+│   │   ├── static/
+│   │   └── data/
+│   └── docs/
+│       ├── BUILD_LOG.md
+│       └── SCOPE.md
+├── prototype_archive/
+├── requirements.txt
+└── README.md
+```
 
-# 2. Install dependencies
+---
+
+## ⚙️ Running the Project
+
+1. Install dependencies:
+
+```
 pip install -r requirements.txt
-
-# 3. (Optional) Add Gemini API key
-echo GOOGLE_API_KEY=your_key_here > .env
-
-# 4. Run the app
-python -m uvicorn main:app --reload --port 8000
 ```
 
-Then open **http://localhost:8000** in your browser.
-
-**Windows shortcut:** Double-click `start.bat`
-
----
-
-## 📁 Project Structure
+2. Run the server:
 
 ```
-📦 TourInHand
-├── main.py              # FastAPI app, all routes & AI logic
-├── data.py              # City data, places, emergency contacts
-├── start.bat            # One-click Windows launcher
-├── requirements.txt     # Python dependencies
-├── static/
-│   ├── css/style.css    # Global styles
-│   └── js/app.js        # All frontend logic
-└── templates/
-    ├── base.html        # Base layout with nav
-    ├── landing.html     # Landing page
-    ├── dashboard.html   # City selector + trip planner
-    ├── result.html      # Full AI itinerary result page
-    └── saved_trips.html # Saved trips browser
+uvicorn main:app --reload
+```
+
+3. Open in browser:
+
+```
+http://127.0.0.1:8000
 ```
 
 ---
 
-## 🗺️ App Flow
+## 🧪 Hackathon Development Approach
 
-```
-Landing → Dashboard (Plan Trip Modal) → Result Page → Save Trip
-                                              │
-                              ┌───────────────┼──────────────────┐
-                         Smart Timeline   AI Summary        Re-sync
-                         (times + dots)   (Gemini)      (time-shift)
-```
+* Simplified feature set for clarity
+* Focus on core user flow
+* Incremental improvements during event
+* Emphasis on explainability and live demo
 
 ---
 
-## 🎯 Result Page Features
+## 🎤 Demo Flow
 
-The result page is the **power screen** containing:
-- ⏱️ Day-wise timeline with `09:00 AM – 10:30 AM` time slots
-- 🔴🟠🟣 Color-coded dots (Morning/Afternoon/Evening)
-- 🌤️ Live weather widget
-- 🌱 Carbon eco-score ring (updates live with ride-share)
-- 👥 Crowd insights per place
-- 🚨 Safety risk badge
-- 🤖 AI Trip Summary paragraph
-- 🚗 Find Ride modal (co-traveler matching + Uber fallback)
-- 🔄 AI Live Re-sync input box
+1. Enter travel details (city, budget, time, interests)
+2. Generate AI-based itinerary
+3. View structured plan + safety score
 
 ---
 
-## 🌆 Supported Cities
+## 🧠 Key Idea
 
-| City | State | Min Budget/Day |
-|---|---|---|
-| 🏛️ Indore | Madhya Pradesh | ₹1,500 |
-| 🏰 Udaipur | Rajasthan | ₹2,000 |
-| 🌲 Dehradun | Uttarakhand | ₹1,800 |
-| 🎪 Jaipur | Rajasthan | ₹2,000 |
-| 🏖️ Goa | Goa | ₹2,500 |
+The goal of TourInHand is not just trip planning, but **making travel safer, smarter, and more accessible for students**.
 
 ---
 
-## 📡 API Endpoints
+## 📌 Note
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/generate_itinerary` | Generate full AI itinerary |
-| `GET` | `/api/cities` | List all cities |
-| `GET` | `/api/city/{id}` | City details + places |
-| `GET` | `/api/share_ride_matches` | Co-traveler matches |
-| `POST` | `/api/update_carbon_score` | Boost eco score via ride-share |
-| `POST` | `/api/re_evaluate` | Natural language time-shift |
-| `POST` | `/api/saved_trips` | Save a trip |
+This project includes earlier prototype/reference material for idea exploration.
+The hackathon build focuses on rebuilding and refining the core system for demonstration and evaluation.
 
 ---
 
-## 🏆 Hackathon Notes
+## 👨‍💻 Author
 
-- Zero paid APIs required (works fully offline with fallback data)
-- No authentication or database needed for demo
-- All AI features have smart fallbacks if API key is missing
-- Mobile-responsive design
-
----
-
-## 📄 License
-
-MIT — free to use, modify, and demo.
-
----
-
-*Built for hackathon demo — TourInHand v2*
+Anshul Chouhan
+AIML Student | Builder | Hackathon Enthusiast
