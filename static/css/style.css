@@ -58,7 +58,7 @@
   --page-max: 1200px;
   --page-px: clamp(16px, 4vw, 48px);
 
-  --transition: 0.2s ease;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ── Reset ────────────────────────────────────────────────── */

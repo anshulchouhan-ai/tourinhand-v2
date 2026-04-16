@@ -33,6 +33,22 @@ with warnings.catch_warnings():
     except Exception:
         model = None
 
+_AI_CACHE = {}
+
+def get_ai_response(prompt: str) -> str:
+    if not model:
+        return ""
+    if prompt in _AI_CACHE:
+        return _AI_CACHE[prompt]
+    try:
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        _AI_CACHE[prompt] = text
+        return text
+    except Exception as e:
+        logger.error(f"Gemini error: {e}")
+        return ""
+
 # Optional Supabase
 try:
     from supabase import create_client, Client
@@ -75,6 +91,12 @@ if not os.path.exists(static_path):
     os.makedirs(static_path, exist_ok=True)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+tiles_path = os.path.join(static_path, "tiles")
+if not os.path.exists(tiles_path):
+    os.makedirs(tiles_path, exist_ok=True)
+app.mount("/tiles", StaticFiles(directory=tiles_path), name="tiles")
+
 templates = Jinja2Templates(directory="templates")
 
 
@@ -110,6 +132,11 @@ class SaveTripRequest(BaseModel):
     user_id: str
     city_id: str
     itinerary_data: dict
+
+class ComparePriceRequest(BaseModel):
+    city: str
+    food_name: str
+    entered_price: float
 
 
 # ── UI Routes ─────────────────────────────────────────────────────────────────
@@ -156,6 +183,50 @@ async def saved_trips(request: Request):
         context={"title": "Saved Trips", "trips": trips}
     )   
 
+@app.get("/compare", response_class=HTMLResponse)
+async def compare_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="compare.html",
+        context={"title": "Compare"}
+    )
+
+@app.get("/location-map", response_class=HTMLResponse)
+async def location_map_page(request: Request, place: str = "", city: str = ""):
+    # If the user tries to load directly without param, gracefully fallback in UI
+    # We will pass the query parameters straight to the template so it can query the dataset or use JS.
+    # Alternatively we can extract it in python and pass it as context. 
+    # Let's extract place data from data.CITIES securely in python for absolute resilience.
+    
+    city_key = city.strip().lower()
+    place_key = place.strip().lower().replace('-', ' ') # handles slug or spacing
+    
+    found_city = None
+    found_place = None
+    
+    for c_id, c_data in data.CITIES.items():
+        if c_id == city_key or c_data['name'].lower() == city_key:
+            found_city = c_data
+            for p in c_data.get('places', []):
+                # check slugified or direct match
+                p_name_lower = p['name'].lower()
+                p_slug = p_name_lower.replace(' ', '-')
+                if p_name_lower == place_key or p_name_lower == place.strip().lower() or p_slug == place.strip().lower():
+                    found_place = p
+                    break
+            break
+
+    # If parsing failed, fallback safely
+    return templates.TemplateResponse(
+        request=request,
+        name="location_map.html",
+        context={
+            "title": f"Location: {found_place['name'] if found_place else place}",
+            "city": found_city,
+            "place": found_place,
+            "raw_place_query": place
+        }
+    )
 
 # ── Smart Planning Helpers ───────────────────────────────────────────────────
 
@@ -492,12 +563,8 @@ def generate_itinerary(req: ItineraryRequest):
         )
         
         final_summary = ""
-        if model:
-            try:
-                response = model.generate_content(prompt)
-                final_summary = response.text.strip()
-            except Exception as e:
-                logger.error(f"Gemini error: {e}")
+        final_summary = get_ai_response(prompt)
+
         
         if not final_summary:
             # High-quality fallback summary
@@ -563,15 +630,8 @@ def generate_itinerary(req: ItineraryRequest):
         result["best_time"]         = city.get("best_time", "October to March")
 
         # ── AI Tagline ───────────────────────────────────────────────
-        if model:
-            try:
-                prompt = f"One catchy sentence travel tagline for {req.days}-day {req.budget} trip to {city['name']} focusing on {', '.join(req.interests) or 'exploration'}."
-                result["tagline"] = model.generate_content(prompt).text.strip()
-            except Exception as e:
-                logger.error(f"AI error: {e}")
-                result["tagline"] = f"Your {req.days}-Day {req.budget} Plan for {city['name']}"
-        else:
-            result["tagline"] = f"Your {req.days}-Day {req.budget} Plan for {city['name']} (AI Offline)"
+        tagline_prompt = f"One catchy sentence travel tagline for {req.days}-day {req.budget} trip to {city['name']} focusing on {', '.join(req.interests) or 'exploration'}."
+        result["tagline"] = get_ai_response(tagline_prompt) or f"Your {req.days}-Day {req.budget} Plan for {city['name']}"
 
         return result
     except Exception as e:
@@ -600,19 +660,80 @@ def save_trip(req: SaveTripRequest):
         logger.error(f"Supabase error: {e}")
         return {"status": "success", "message": f"Cached locally. Error: {str(e)}"}
 
+import math
+from datetime import datetime
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    R = 6371.0 # km
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+def normalize_dest(d):
+    import re
+    return re.sub(r'[^a-zA-Z0-9]', '', str(d)).lower()
+
+def check_time_overlap(t1_str, t2_str, threshold_mins=15):
+    try:
+        t1 = datetime.strptime(t1_str.strip(), "%I:%M %p")
+        t2 = datetime.strptime(t2_str.strip(), "%I:%M %p")
+        diff_mins = abs((t1 - t2).total_seconds()) / 60.0
+        return diff_mins <= threshold_mins
+    except:
+        return False
+
 @app.get("/api/share_ride_matches")
-def share_ride_matches(budget: int = 0):
-    """Return dummy co-traveler matches. If budget provided, split fares are calculated dynamically."""
-    matches = data.get_ride_matches()
-    if budget > 0:
-        riders = 3
-        for i, m in enumerate(matches):
-            # Split cost = (budget / riders) with small variance per person
-            base = round(budget / riders)
-            variance = [0, 25, 50][i]
-            m["split_cost"] = base + variance
-            m["money_saved"] = round(budget - m["split_cost"])
-    return matches
+def share_ride_matches(budget: float = 0, dest: str = "", lat: float = 0.0, lon: float = 0.0, time: str = "10:00 AM"):
+    all_riders = data.get_ride_matches()
+    matches = []
+    
+    user_dest_norm = normalize_dest(dest)
+    if not user_dest_norm:
+        return []
+
+    for r in all_riders:
+        r_dest_norm = normalize_dest(r.get("destination", ""))
+        if user_dest_norm != r_dest_norm:
+            continue
+            
+        r_lat = r.get("lat", 0.0)
+        r_lon = r.get("lon", 0.0)
+        dist = calculate_distance(lat, lon, r_lat, r_lon)
+        
+        # Must be within 2km
+        if dist > 2.0:
+            continue
+            
+        r_time = r.get("departure_time", "")
+        if not check_time_overlap(time, r_time, 15):
+            continue
+            
+        # Using destination distance simulation for Fare logic:
+        # Distance to destination = somewhat random based on current offset
+        dest_dist = max(2.5, dist + 4.5) 
+        
+        solo_fare = round(dest_dist * 18) # 18rs/km
+        detour_buffer = 0.15 * solo_fare
+        shared_total = solo_fare + detour_buffer
+        per_person = round(shared_total / 2)
+        saving = solo_fare - per_person
+        
+        co2_per_km = 120 # g/km
+        co2_saved = round((dest_dist * co2_per_km) / 1000, 1)
+        
+        m_copy = r.copy()
+        m_copy["solo_fare"] = solo_fare
+        m_copy["split_cost"] = per_person
+        m_copy["money_saved"] = saving
+        m_copy["distance_km"] = f"{dist:.1f}"
+        m_copy["co2_saved"] = f"{co2_saved} kg"
+        m_copy["match_pct"] = 98 if dist < 0.5 else 92 
+        
+        matches.append(m_copy)
+
+    return sorted(matches, key=lambda x: float(x["distance_km"]))
 
 @app.post("/api/update_carbon_score")
 async def update_carbon_score(payload: dict):
@@ -634,6 +755,115 @@ async def update_carbon_score(payload: dict):
 @app.post("/api/delete_trip")
 def delete_trip(payload: dict):
     return {"status": "success", "message": "Trip deleted."}
+
+FOOD_PRICE_CACHE = {}
+
+def load_food_prices():
+    global FOOD_PRICE_CACHE
+    if FOOD_PRICE_CACHE:
+        return FOOD_PRICE_CACHE
+    
+    import csv
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
+    if not os.path.exists(data_dir):
+        return {}
+        
+    cache = {}
+    for filename in os.listdir(data_dir):
+        if filename.endswith("foodpriceavg.csv"):
+            city_name = filename.replace("foodpriceavg.csv", "").lower()
+            city_data = {}
+            filepath = os.path.join(data_dir, filename)
+            try:
+                with open(filepath, "r", encoding="utf-8-sig") as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        food = row.get("food_name", "").strip()
+                        avg_price = row.get("avg_price_rs", "")
+                        if not avg_price:
+                            avg_price = row.get("avg_price_inr", "")
+                        avg_price = str(avg_price).strip()
+                        
+                        if food and avg_price and avg_price.isdigit():
+                            import re as _re
+                            normalized = _re.sub(r'\s+', '', food.lower())
+                            city_data[normalized] = {"name": food, "price": int(avg_price)}
+            except Exception as e:
+                logger.error(f"Error reading CSV {filename}: {e}")
+            cache[city_name] = city_data
+    
+    FOOD_PRICE_CACHE = cache
+    return cache
+
+@app.get("/api/food_catalogue")
+def get_food_catalogue():
+    cache = load_food_prices()
+    # restructure to be friendlier for frontend: { "Dehradun": ["Gol Gappe", "Momos"], ... }
+    result = {}
+    for city_key, foods in cache.items():
+        city_display = city_key.title()
+        result[city_display] = [f["name"] for f in foods.values()]
+    return result
+
+@app.post("/api/compare_price")
+def compare_price(req: ComparePriceRequest):
+    import re as _re
+    cache = load_food_prices()
+    city_key = req.city.strip().lower()
+    
+    if city_key not in cache:
+        return {"success": False, "message": f"Price data is currently unavailable for {req.city}."}
+        
+    city_data = cache[city_key]
+    normalized_input = _re.sub(r'\s+', '', req.food_name.lower())
+    
+    # Try exact normalized match
+    if normalized_input not in city_data:
+        # Forgiving match logic: check substring
+        found = False
+        for key, val in city_data.items():
+            if normalized_input in key or key in normalized_input:
+                normalized_input = key
+                found = True
+                break
+        if not found:
+            return {"success": False, "message": "This food item was not found for the selected city."}
+            
+    match = city_data[normalized_input]
+    avg_price = match["price"]
+    food_name_display = match["name"]
+    
+    diff = req.entered_price - avg_price
+    
+    if diff > 0:
+        verdict = "Overpriced"
+        msg = f"You are getting it for ₹{diff:g} more than the actual average price."
+    elif diff < 0:
+        verdict = "Good Deal"
+        msg = f"You are getting it for ₹{abs(diff):g} less than the city average price."
+    else:
+        verdict = "Fair Price"
+        msg = "You are getting a fair average price."
+        
+    # Add Percentage note if applicable
+    if diff != 0 and avg_price > 0:
+        pct = (abs(diff) / avg_price) * 100
+        if verdict == "Overpriced":
+            msg += f"\nThat is {pct:.0f}% above the city average."
+        elif verdict == "Good Deal":
+            msg += f"\nThat is {pct:.0f}% below the city average."
+
+    return {
+        "success": True,
+        "food_name": food_name_display,
+        "city": req.city.title(),
+        "entered_price": req.entered_price,
+        "average_price": avg_price,
+        "difference": diff,
+        "difference_type": "higher" if diff > 0 else "lower" if diff < 0 else "equal",
+        "verdict": verdict,
+        "message": msg
+    }
 
 
 # ── Pydantic model for re-evaluate ─────────────────────────────────────────

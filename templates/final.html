@@ -1,6 +1,84 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block content %}
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="TourInHand — AI-powered safe, smart, and sustainable travel planner for students and budget travelers.">
+  <title>TourInHand — {{ title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- CDNs for Tailwind and Material Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#0053cc',
+            'primary-dim': '#0042a3',
+            'on-primary': '#ffffff',
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            headline: ['Satoshi', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body>
+
+  <!-- ── Global Navigation ── -->
+  <header class="navbar sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-6 py-3 lg:px-12">
+    <div class="max-w-[1440px] mx-auto flex items-center justify-between">
+      <a href="/" class="flex items-center gap-3 text-primary group">
+        <div
+          class="size-10 bg-primary flex items-center justify-center rounded-xl text-on-primary shadow-lg shadow-primary/30 transition-transform group-hover:scale-110">
+          <span class="material-symbols-outlined text-xl">travel_explore</span>
+        </div>
+        <span class="text-slate-900 text-xl font-headline font-black tracking-tight">TourInHand</span>
+      </a>
+
+      <nav style="display: none;"
+        class="hidden md:flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <button
+          class="size-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border border-slate-100"
+          onclick="showEmergency()" title="Emergency Contacts">
+          <span class="material-symbols-outlined text-xl">emergency</span>
+        </button>
+
+        <button class="md:hidden size-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-500"
+          onclick="toggleMobileMenu()">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Menu Container (JS driven) -->
+    <div id="mobile-menu" style="display: none !important;"
+      class="hidden md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-100 p-6 flex-col gap-4 shadow-2xl">
+    </div>
+  </header>
+
+  <!-- ── Page Content ── -->
+  <main class="page-root" id="page-root">
+    
 <div class="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-[#f7f8fc]">
   <main class="flex flex-1 flex-col">
     <div
@@ -10,7 +88,7 @@
       <aside class="hidden lg:flex flex-col gap-4">
 
         <!-- Nav -->
-        <nav class="flex flex-col gap-1">
+        <nav class="hidden" style="display: none;">
           <a href="/dashboard"
             class="flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-500 hover:bg-white hover:shadow-sm transition-all text-sm font-bold">
             <span class="material-symbols-outlined text-xl">explore</span> Dashboard
@@ -160,97 +238,102 @@
                 </p>
               </div>
               <div id="risk-badge-wrap" class="hidden">
+                <div id="risk-badge"
+                  class="px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 border-2">
+                  <span class="material-symbols-outlined text-sm">verified_user</span>
 
-              </div>
-
-              <!-- Itinerary Days -->
-              <div id="itinerary-days" class="timeline-lane" aria-label="Day-by-day itinerary">
-                <div class="timeline-lane-line"></div>
-                <div id="result-empty-state" class="py-16 text-center">
-                  <div class="text-5xl mb-5">🏜️</div>
-                  <h3 class="font-black text-xl mb-2 text-slate-800">No Plan Yet</h3>
-                  <p class="text-slate-400 text-sm mb-7">Go back to dashboard and generate a trip plan.</p>
-                  <a href="/dashboard"
-                    class="inline-flex items-center gap-2 px-7 py-3 bg-primary text-white rounded-xl font-black text-sm shadow-lg shadow-primary/20">
-                    <span class="material-symbols-outlined">explore</span> Start Planning
-                  </a>
                 </div>
               </div>
+            </div>
 
-              <!-- Add Destination CTA -->
-              <div class="mt-10 hidden" id="add-stop-cta">
-                <button onclick="openPlacePicker()"
-                  class="w-full flex items-center justify-center gap-3 py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 hover:border-primary hover:text-primary hover:bg-blue-50/40 transition-all font-bold text-sm group">
-                  <span
-                    class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">add_location_alt</span>
-                  Add Another Destination
+            <!-- Itinerary Days -->
+            <div id="itinerary-days" class="timeline-lane" aria-label="Day-by-day itinerary">
+              <div class="timeline-lane-line"></div>
+              <div id="result-empty-state" class="py-16 text-center">
+                <div class="text-5xl mb-5">🏜️</div>
+                <h3 class="font-black text-xl mb-2 text-slate-800">No Plan Yet</h3>
+                <p class="text-slate-400 text-sm mb-7">Click Replan to generate a trip plan.</p>
+                <button onclick="openReplanModal()"
+                  class="inline-flex items-center gap-2 px-7 py-3 bg-primary text-white rounded-xl font-black text-sm shadow-lg shadow-primary/20">
+                  <span class="material-symbols-outlined">explore</span> Start Planning
                 </button>
               </div>
-
-              <!-- AI Trip Summary -->
-              <div id="ai-summary-box" class="hidden mt-10 pt-8 border-t border-slate-100">
-                <div class="flex items-center gap-2 mb-4">
-                  <span class="material-symbols-outlined text-sm" style="color:#4f46e5;">smart_toy</span>
-                  <p class="text-[9px] font-black uppercase tracking-[0.2em]" style="color:#4f46e5;">AI Trip Summary</p>
-                  <span id="style-chip"
-                    class="ml-1 px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest"
-                    style="background:#e0e7ff;color:#4338ca;"></span>
-                </div>
-                <div
-                  class="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-100 relative overflow-hidden">
-                  <div class="absolute top-3 right-5 text-[4rem] opacity-[0.04] select-none font-black"
-                    style="color:#4f46e5;">AI</div>
-                  <p id="ai-summary-text" class="text-slate-700 text-sm font-medium leading-relaxed relative z-10"></p>
-                  <!-- Safety Alerts -->
-                  <div id="safety-alert-block" class="hidden mt-5 pt-4 border-t border-indigo-100 flex flex-col gap-2">
-                  </div>
-                </div>
-              </div>
-
-              <!-- ── AI Live Re-sync Box ── -->
-              <div class="mt-10 pt-8 border-t border-slate-100">
-                <!-- Time legend -->
-                <div class="flex items-center gap-4 mb-5 flex-wrap">
-                  <p class="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">Timeline Key</p>
-                  <span class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
-                    <span class="inline-block size-3 rounded-full flex-shrink-0" style="background:#facc15;"></span>
-                    Morning
-                  </span>
-                  <span class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
-                    <span class="inline-block size-3 rounded-full flex-shrink-0" style="background:#fb923c;"></span>
-                    Afternoon
-                  </span>
-                  <span class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
-                    <span class="inline-block size-3 rounded-full flex-shrink-0" style="background:#a855f7;"></span>
-                    Evening/Night
-                  </span>
-                </div>
-
-                <!-- Re-sync Input -->
-                <div class="bg-slate-900 rounded-2xl p-5 flex flex-col gap-4">
-                  <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-base" style="color:#a5f3fc;">autorenew</span>
-                    <p class="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-300">AI Live Re-sync</p>
-                  </div>
-                  <p class="text-slate-400 text-xs font-medium leading-relaxed">
-                    Ran behind schedule? Tell the AI and it will automatically shift your remaining activities.
-                  </p>
-                  <div class="flex gap-2">
-                    <input id="resync-input" type="text" placeholder='e.g. "Spent 1.5 hours extra at Rajwada"'
-                      class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm font-medium text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-                      onkeydown="if(event.key==='Enter') reEvaluateSchedule()" />
-                    <button id="resync-btn" onclick="reEvaluateSchedule()"
-                      class="px-5 py-3 bg-cyan-500 text-slate-900 rounded-xl font-black text-xs hover:bg-cyan-400 transition-all flex-shrink-0 flex items-center gap-1.5 shadow-lg shadow-cyan-500/20">
-                      <span class="material-symbols-outlined text-base">sync</span> Sync
-                    </button>
-                  </div>
-                  <!-- Warnings panel -->
-                  <div id="resync-warnings" class="hidden flex flex-col gap-2"></div>
-                </div>
-              </div>
-
             </div>
+
+            <!-- Add Destination CTA -->
+            <div class="mt-10 hidden" id="add-stop-cta">
+              <button onclick="openPlacePicker()"
+                class="w-full flex items-center justify-center gap-3 py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 hover:border-primary hover:text-primary hover:bg-blue-50/40 transition-all font-bold text-sm group">
+                <span
+                  class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">add_location_alt</span>
+                Add Another Destination
+              </button>
+            </div>
+
+            <!-- AI Trip Summary -->
+            <div id="ai-summary-box" class="hidden mt-10 pt-8 border-t border-slate-100">
+              <div class="flex items-center gap-2 mb-4">
+                <span class="material-symbols-outlined text-sm" style="color:#4f46e5;">smart_toy</span>
+                <p class="text-[9px] font-black uppercase tracking-[0.2em]" style="color:#4f46e5;">AI Trip Summary</p>
+                <span id="style-chip"
+                  class="ml-1 px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest"
+                  style="background:#e0e7ff;color:#4338ca;"></span>
+              </div>
+              <div
+                class="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-100 relative overflow-hidden">
+                <div class="absolute top-3 right-5 text-[4rem] opacity-[0.04] select-none font-black"
+                  style="color:#4f46e5;">AI</div>
+                <p id="ai-summary-text" class="text-slate-700 text-sm font-medium leading-relaxed relative z-10"></p>
+                <!-- Safety Alerts -->
+                <div id="safety-alert-block" class="hidden mt-5 pt-4 border-t border-indigo-100 flex flex-col gap-2">
+                </div>
+              </div>
+            </div>
+
+            <!-- ── AI Live Re-sync Box ── -->
+            <div class="mt-10 pt-8 border-t border-slate-100">
+              <!-- Time legend -->
+              <div class="flex items-center gap-4 mb-5 flex-wrap">
+                <p class="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">Timeline Key</p>
+                <span class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
+                  <span class="inline-block size-3 rounded-full flex-shrink-0" style="background:#facc15;"></span>
+                  Morning
+                </span>
+                <span class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
+                  <span class="inline-block size-3 rounded-full flex-shrink-0" style="background:#fb923c;"></span>
+                  Afternoon
+                </span>
+                <span class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
+                  <span class="inline-block size-3 rounded-full flex-shrink-0" style="background:#a855f7;"></span>
+                  Evening/Night
+                </span>
+              </div>
+
+              <!-- Re-sync Input -->
+              <div class="bg-slate-900 rounded-2xl p-5 flex flex-col gap-4">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-base" style="color:#a5f3fc;">autorenew</span>
+                  <p class="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-300">AI Live Re-sync</p>
+                </div>
+                <p class="text-slate-400 text-xs font-medium leading-relaxed">
+                  Ran behind schedule? Tell the AI and it will automatically shift your remaining activities.
+                </p>
+                <div class="flex gap-2">
+                  <input id="resync-input" type="text" placeholder='e.g. "Spent 1.5 hours extra at Rajwada"'
+                    class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm font-medium text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                    onkeydown="if(event.key==='Enter') reEvaluateSchedule()" />
+                  <button id="resync-btn" onclick="reEvaluateSchedule()"
+                    class="px-5 py-3 bg-cyan-500 text-slate-900 rounded-xl font-black text-xs hover:bg-cyan-400 transition-all flex-shrink-0 flex items-center gap-1.5 shadow-lg shadow-cyan-500/20">
+                    <span class="material-symbols-outlined text-base">sync</span> Sync
+                  </button>
+                </div>
+                <!-- Warnings panel -->
+                <div id="resync-warnings" class="hidden flex flex-col gap-2"></div>
+              </div>
+            </div>
+
           </div>
+        </div>
 
 
 
@@ -259,26 +342,23 @@
       <!-- ── Right Sidebar ── -->
       <aside id="result-sidebar" class="flex flex-col gap-4">
 
-        <!-- Interactive Offline Map -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col relative">
-          <div class="flex items-center justify-between mb-3">
-            <h4 class="text-slate-900 font-black text-sm flex items-center gap-2">
-              🗺️ Destination Map
-            </h4>
-            <span id="map-offline-badge"
-              class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 text-[9px] font-black uppercase tracking-widest hidden">Local
-              Mode</span>
-          </div>
-          <div class="aspect-square bg-slate-50 rounded-xl overflow-hidden relative" id="map-container-wrap">
-            <div id="interactive-map" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
-            <!-- Fallback overlay if map initialization entirely fails -->
-            <div id="map-fallback"
-              class="hidden absolute inset-0 bg-slate-100 flex-col items-center justify-center p-4 text-center">
-              <span class="material-symbols-outlined text-3xl mb-2 text-slate-300">map_off</span>
-              <p class="text-xs font-bold text-slate-500 mb-1">Offline Tiling Unavailable</p>
-              <p class="text-[9px] text-slate-400 font-medium px-4">The local map cache for this city is missing.</p>
+        <!-- Map -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+          <h4 class="text-slate-900 font-black text-sm mb-3 flex items-center gap-2">
+            🗺️ Destination Map
+          </h4>
+          <div class="aspect-square bg-slate-100 rounded-xl overflow-hidden mb-3 relative group cursor-pointer"
+            onclick="document.getElementById('result-map-link').click()">
+            <img id="result-map-img" alt="Map"
+              class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=400&q=60" />
+            <div
+              class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+              <span
+                class="material-symbols-outlined text-white text-2xl opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
             </div>
           </div>
+          <a id="result-map-link" href="#" target="_blank" class="hidden">Open Maps</a>
         </div>
 
         <!-- Best Visit Times anchor -->
@@ -481,9 +561,46 @@
   </div>
 </div>
 
-{% endblock %}
 
-{% block scripts %}
+  </main>
+
+  <!-- ── Loader Overlay ── -->
+  <div class="loader-overlay" id="loader-overlay" aria-hidden="true">
+    <div class="loader-box">
+      <div class="loader-spinner"></div>
+      <div class="loader-text">Loading…</div>
+    </div>
+  </div>
+
+  <!-- ── Toast Container ── -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- ── Emergency Banner ── -->
+  <div class="emergency-overlay" id="emergency-overlay" style="display:none" role="dialog" aria-modal="true"
+    aria-label="Emergency Contacts">
+    <div class="emergency-dialog">
+      <div class="emergency-dialog-header">
+        <h2 class="emergency-dialog-title">🚨 Emergency Contacts</h2>
+        <button class="btn-icon" onclick="hideEmergency()" aria-label="Close">✕</button>
+      </div>
+      <p class="emergency-dialog-sub">Available 24/7 across India — stay safe out there.</p>
+      <div class="emergency-grid">
+        <a href="tel:112" class="emergency-item"><span class="emergency-number">112</span><span
+            class="emergency-label">Emergency</span></a>
+        <a href="tel:100" class="emergency-item"><span class="emergency-number">100</span><span
+            class="emergency-label">Police</span></a>
+        <a href="tel:108" class="emergency-item"><span class="emergency-number">108</span><span
+            class="emergency-label">Ambulance</span></a>
+        <a href="tel:1363" class="emergency-item"><span class="emergency-number">1363</span><span
+            class="emergency-label">Tourist</span></a>
+        <a href="tel:1091" class="emergency-item"><span class="emergency-number">1091</span><span
+            class="emergency-label">Women</span></a>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', path='js/app.js') }}"></script>
+  
 <style>
   .canvas-dot-grid {
     background-image: radial-gradient(circle, #dde4ed 0.7px, transparent 0.7px);
@@ -665,9 +782,16 @@
 
   /* ── Replan Submit ─────────────────────────────────────── */
   function submitReplan() {
+    let cityId = 'c1'; // Default to Delhi if no state
+    let interests = [];
+    let opts = null;
     const stored = sessionStorage.getItem('tih_result');
-    if (!stored) return;
-    const { data, opts } = JSON.parse(stored);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      cityId = parsed.data?.id || parsed.opts?.city_id || cityId;
+      interests = parsed.opts?.interests || interests;
+      opts = parsed.opts;
+    }
     const fromDate = document.getElementById('rp-from-date').value;
     const toDate = document.getElementById('rp-to-date').value;
     const budget = document.getElementById('rp-budget').value;
@@ -679,8 +803,8 @@
     fetch('/api/generate_itinerary', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        city_id: data.id || opts?.city_id || '',
-        interests: opts?.interests || [],
+        city_id: cityId,
+        interests: interests,
         budget, days: String(days),
         user_budget: opts?.user_budget || 0,
         selected_places: [],
@@ -815,86 +939,36 @@
     }
   }
 
-  function getSimulatedLocationOffset(lat, lng) {
-    // Offset by roughly ~1.5km
-    return { lat: lat - 0.012, lng: lng - 0.012 };
-  }
-
   function loadRideMatches() {
     const stored = sessionStorage.getItem('tih_result');
     let budget = 0;
-
-    // Simulate user state for the prototype Demo
-    let userDest = "Unknown";
-    let userLat = 0.0;
-    let userLng = 0.0;
-    let userTime = "10:00 AM";
-
     if (stored) {
       const { data } = JSON.parse(stored);
       _currentEcoScore = data.ai_insights?.eco_score ?? data.eco_score ?? 70;
       const totalBudget = data.budget_analysis?.user_budget || data.per_day_budget * 3 || 0;
       budget = totalBudget;
-
-      if (data.places && data.places.length > 0) {
-        userDest = data.places[0].name;
-        // Mock current location to be near the first destination
-        const loc = getSimulatedLocationOffset(data.places[0].lat, data.places[0].lon);
-        userLat = loc.lat;
-        userLng = loc.lng;
-      }
     }
 
-    const container = document.getElementById('ride-matches-container');
-    container.innerHTML = `
-      <div class="text-center py-6 text-slate-400 text-sm">
-        <span class="material-symbols-outlined text-3xl mb-2 block" style="color:#10b981;animation:spin 1s linear infinite;">autorenew</span>
-        Scanning 2km radius for matching routes…
-      </div>`;
-
-    document.getElementById('modal-split-fare').textContent = '₹—';
-    document.getElementById('modal-money-saved').textContent = '₹—';
-    document.getElementById('modal-co2').textContent = '0 kg';
-
-    const params = new URLSearchParams({
-      budget: budget,
-      dest: userDest,
-      lat: userLat,
-      lon: userLng,
-      time: userTime
-    });
-
-    fetch(`/api/share_ride_matches?${params.toString()}`)
+    fetch(`/api/share_ride_matches?budget=${budget}`)
       .then(r => r.json())
       .then(matches => {
         _rideMatches = matches;
         const bestMatch = matches[0] || {};
-        if (matches.length > 0) {
-          document.getElementById('modal-split-fare').textContent = '₹' + (bestMatch.split_cost || '—');
-          document.getElementById('modal-money-saved').textContent = bestMatch.money_saved ? '₹' + bestMatch.money_saved : '—';
-          document.getElementById('modal-co2').textContent = bestMatch.co2_saved || '0 kg';
-        }
+        document.getElementById('modal-split-fare').textContent = '₹' + (bestMatch.split_cost || '—');
+        document.getElementById('modal-money-saved').textContent = bestMatch.money_saved ? '₹' + bestMatch.money_saved : '—';
+        document.getElementById('modal-co2').textContent = bestMatch.co2_saved || '0 kg';
         renderMatchCards(matches);
       })
       .catch(() => {
-        container.innerHTML = `
-          <div class="text-center py-6 text-slate-400 text-sm font-medium">Could not load matches. Check connection.</div>`;
+        document.getElementById('ride-matches-container').innerHTML = `
+          <div class="text-center py-6 text-slate-400 text-sm">Could not load matches. Check connection.</div>`;
       });
   }
 
   function renderMatchCards(matches) {
     const container = document.getElementById('ride-matches-container');
     if (!matches.length) {
-      container.innerHTML = `
-        <div class="text-center py-8">
-          <div class="flex justify-center mb-3">
-            <div class="size-14 rounded-full bg-slate-50 flex items-center justify-center">
-              <span class="material-symbols-outlined text-slate-300 text-3xl">wrong_location</span>
-            </div>
-          </div>
-          <h3 class="text-slate-800 font-black text-base mb-1">No nearby rider found</h3>
-          <p class="text-slate-500 text-xs font-medium px-4">There is no one heading to the same destination within a 2km radius right now.<br>Try again for a nearby departure window.</p>
-        </div>`;
+      container.innerHTML = '<div class="text-center py-6 text-slate-400 text-sm">No matches found near you.</div>';
       return;
     }
     const STYLE_LABEL = { adventure: '⛰️ Adventure', backpacking: '🎒 Backpacking', chill: '🌿 Chill', foodie: '🍛 Foodie' };
@@ -907,22 +981,18 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-0.5">
             <p class="font-black text-sm text-slate-900">${m.name}</p>
-            ${m.verified ? '<span style="font-size:0.65rem;background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:99px;font-weight:900;">✅</span>' : ''}
+            ${m.verified ? '<span style="font-size:0.65rem;background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:99px;font-weight:900;">✅ Verified</span>' : ''}
           </div>
-          <p class="text-[10px] text-slate-500 font-medium leading-snug">Heading to ${m.destination}</p>
-          <div class="flex items-center gap-2 mt-1">
-             <span class="text-[9px] font-black" style="color:${m.avatar_color || '#6366f1'}">${STYLE_LABEL[m.travel_style] || 'Traveler'}</span>
-             <span class="text-[9px] text-slate-400 font-bold">• ${m.distance_km} km away</span>
-             <span class="text-[9px] text-slate-400 font-bold">• Leaves in ${Math.round(Math.random() * 10 + 2)} min</span>
-          </div>
+          <p class="text-[10px] text-slate-500 font-medium leading-snug">${m.bio || ''}</p>
+          <p class="text-[9px] font-black mt-1" style="color:${m.avatar_color || '#6366f1'}">${STYLE_LABEL[m.travel_style] || m.travel_style || ''}</p>
         </div>
         <!-- Metrics -->
-        <div class="flex flex-col items-end justify-center flex-shrink-0 pr-1">
-          <div class="text-[11px] font-black text-slate-900 line-through opacity-40 mb-0.5">₹${m.solo_fare}</div>
-          <div class="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mb-1">₹${m.split_cost} each</div>
-          <div class="text-[9px] font-bold text-slate-500 mb-1">You Save ₹${m.money_saved}</div>
-          <button class="ride-select-btn px-4 py-1.5 rounded-xl border-2 border-slate-200 text-[10px] font-black text-slate-600 transition-all hover:bg-slate-50 mt-0.5" onclick="toggleRideSharing(${i});event.stopPropagation()">
-            ${_selectedRider === i ? '✓ Selected' : 'Select Ride'}
+        <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+          <div class="text-xs font-black px-3 py-1 rounded-full" style="background:#d1fae5;color:#065f46;">${m.match_pct}% Match</div>
+          <div class="text-[10px] font-bold text-slate-500">₹${m.split_cost} split</div>
+          <div class="text-[9px] font-bold text-emerald-600">${m.co2_saved} CO₂ saved</div>
+          <button class="ride-select-btn mt-1 px-3 py-1.5 rounded-xl border-2 border-slate-200 text-[9px] font-black text-slate-600 transition-all" onclick="toggleRideSharing(${i});event.stopPropagation()">
+            ${_selectedRider === i ? '✓ Selected' : 'Select'}
           </button>
         </div>
       </div>`)
@@ -998,26 +1068,18 @@
     initResultPage();
     const stored = sessionStorage.getItem('tih_result');
     if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        document.getElementById('nav-city-name').textContent = parsed.data.name || '—';
-        document.getElementById('nav-days-label').textContent = (parsed.opts?.days || 3) + ' Days';
-        const styleEl = document.getElementById('nav-style-label');
-        if (styleEl) styleEl.textContent = (parsed.opts?.travel_style || 'chill').replace('_', ' ');
-        if ((parsed.data.places || []).length > 0) {
-          document.getElementById('add-stop-cta')?.classList.remove('hidden');
-        }
-
-        if (typeof initOfflineMap === 'function') {
-          initOfflineMap(parsed.data.places, parsed.data.name);
-        }
-      } catch (e) { }
+      const parsed = JSON.parse(stored);
+      document.getElementById('nav-city-name').textContent = parsed.data.name || '—';
+      document.getElementById('nav-days-label').textContent = (parsed.opts?.days || 3) + ' Days';
+      const styleEl = document.getElementById('nav-style-label');
+      if (styleEl) styleEl.textContent = (parsed.opts?.travel_style || 'chill').replace('_', ' ');
+      if ((parsed.data.places || []).length > 0) {
+        document.getElementById('add-stop-cta')?.classList.remove('hidden');
+      }
     }
   });
 </script>
 
-<!-- Offline MapLibre Assets -->
-<link href="/static/css/maplibre-gl.css" rel="stylesheet" />
-<script src="/static/js/maplibre-gl.js"></script>
+</body>
 
-{% endblock %}
+</html>

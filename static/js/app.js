@@ -607,11 +607,14 @@ function initResultPage() {
                 <h4 style="font-weight:800;font-size:0.93rem;color:#0f172a;margin:0;flex:1;">${p.name}</h4>
                 <span style="font-size:0.6rem;font-weight:900;background:${ac}15;color:${ac};padding:3px 9px;border-radius:99px;border:1px solid ${ac}30;flex-shrink:0;white-space:nowrap;">${p.category||'Visit'}</span>
               </div>
-              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;width:100%;">
                 ${timeRow}
                 <span style="display:flex;align-items:center;gap:3px;font-size:0.7rem;font-weight:600;color:#64748b;"><span class="material-symbols-outlined" style="font-size:0.85rem;color:#94a3b8;">payments</span>${costStr}</span>
                 <span style="display:flex;align-items:center;gap:3px;font-size:0.7rem;font-weight:600;color:#64748b;"><span class="material-symbols-outlined" style="font-size:0.85rem;color:#94a3b8;">timer</span>${p.duration||'1–2 hrs'}</span>
                 <span style="display:flex;align-items:center;gap:3px;font-size:0.7rem;font-weight:700;color:${crowdC[cl]||'#f59e0b'};"><span class="material-symbols-outlined" style="font-size:0.85rem;">groups</span>${cl} crowd</span>
+                <a href="/location-map?place=${encodeURIComponent(p.name)}&city=${encodeURIComponent(data.id || data.name)}" target="_blank" style="margin-left:auto; display:flex; align-items:center; gap:4px; padding:5px 12px; background:#eff6ff; color:#2563eb; font-size:0.65rem; font-weight:800; border-radius:99px; text-decoration:none; transition:all 0.2s; border:1px solid #bfdbfe;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+                  <span class="material-symbols-outlined" style="font-size:0.85rem;">map</span> Location Map
+                </a>
               </div>
             </div>
           </div>`;
@@ -958,3 +961,94 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 console.log('[TourInHand v2] app.js loaded ✈️');
+
+function initOfflineMap(places, cityName) {
+  if (!places || places.length === 0) return;
+  const mapContainer = document.getElementById('interactive-map');
+  if (!mapContainer) return;
+  
+  const centerLat = places[0].lat;
+  const centerLon = places[0].lon;
+  
+  try {
+    const map = new maplibregl.Map({
+      container: 'interactive-map',
+      style: {
+        "version": 8,
+        "sources": {
+          "offline-rasters": {
+            "type": "raster",
+            "tiles": ["/static/tiles/{z}/{x}/{y}.png"],
+            "tileSize": 256,
+            "minzoom": 12,
+            "maxzoom": 12
+          }
+        },
+        "layers": [{
+          "id": "offline-basemap",
+          "type": "raster",
+          "source": "offline-rasters",
+          "minzoom": 0,
+          "maxzoom": 22
+        }]
+      },
+      center: [centerLon, centerLat],
+      zoom: 12,
+      attributionControl: false
+    });
+    
+    // Add markers
+    places.forEach(p => {
+      if (!p.lon || !p.lat) return;
+      const el = document.createElement('div');
+      el.className = 'custom-map-marker group transition-transform hover:scale-110';
+      el.innerHTML = `<span class="material-symbols-outlined text-primary" style="font-size:32px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2)); transition: 0.3s; cursor: pointer;">location_on</span>`;
+      
+      const CAT_CLR = { Heritage: '#6366f1', Nature: '#10b981', Food: '#f59e0b', Adventure: '#ef4444', Shopping: '#ec4899', Culture: '#8b5cf6', Beach: '#0ea5e9' };
+      const catColor = CAT_CLR[p.category] || '#0f172a';
+      
+      const popupHtml = `
+        <div style="min-width:160px; padding:6px 4px 2px;">
+            <p style="font-size:9px; font-weight:900; color:${catColor}; text-transform:uppercase; margin-bottom:2px; letter-spacing:0.5px;">${p.category || 'Location'}</p>
+            <p style="font-size:14px; font-weight:900; color:#0f172a; margin:0 0 6px; line-height:1.2;">${p.name}</p>
+            <p style="font-size:11px; font-weight:600; color:#64748b; margin:0; display:flex; align-items:center; gap:4px;">
+              <span class="material-symbols-outlined" style="font-size:12px;">schedule</span> ${p.time_slot || 'Anytime'}
+            </p>
+        </div>
+      `;
+      
+      new maplibregl.Marker({ element: el })
+        .setLngLat([p.lon, p.lat])
+        .setPopup(new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(popupHtml))
+        .addTo(map);
+    });
+    
+    map.on('error', (e) => {
+        if (e && e.error && e.error.status === 404) {
+           const badge = document.getElementById('map-offline-badge');
+           if(badge && !badge.classList.contains('text-red-500')) {
+              badge.textContent = 'MISSING TILES';
+              badge.className = 'px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-widest bg-red-50 text-red-500 border-red-100';
+              
+              // Only show full overlay once (gracefully degrade tracking)
+              const fallback = document.getElementById('map-fallback');
+              if (fallback) fallback.classList.remove('hidden');
+           }
+        }
+    });
+
+    map.on('load', () => {
+       const badge = document.getElementById('map-offline-badge');
+       if(badge && !badge.classList.contains('text-red-500')) {
+          badge.classList.remove('hidden');
+       }
+    });
+
+    // Save instance for resize fixes
+    window._tourInHandMap = map;
+  } catch (e) {
+    console.warn("Map setup failed:", e);
+    const fallback = document.getElementById('map-fallback');
+    if (fallback) fallback.classList.remove('hidden');
+  }
+}

@@ -403,7 +403,7 @@ def get_mock_saved_trips():
             "safety_score": 92,
             "eco_score": 95,
             "tags": ["Heritage", "Food", "Eco-Friendly"],
-            "hero_image": "https://images.unsplash.com/photo-1596720426673-e4e142944b00?auto=format&fit=crop&w=600&q=70",
+            "hero_image": CITIES["indore"]["hero_image"],
             "saved_at": "Apr 10, 2026",
         },
         {
@@ -417,7 +417,7 @@ def get_mock_saved_trips():
             "safety_score": 88,
             "eco_score": 75,
             "tags": ["Heritage", "Lakes", "Culture"],
-            "hero_image": "https://images.unsplash.com/photo-1585012586237-7c73fbbe1d78?auto=format&fit=crop&w=600&q=70",
+            "hero_image": CITIES["udaipur"]["hero_image"],
             "saved_at": "Apr 9, 2026",
         },
         {
@@ -431,7 +431,7 @@ def get_mock_saved_trips():
             "safety_score": 82,
             "eco_score": 70,
             "tags": ["Heritage", "Markets", "Food"],
-            "hero_image": "https://images.unsplash.com/photo-1603569283847-aa295f0d016a?auto=format&fit=crop&w=600&q=70",
+            "hero_image": CITIES["jaipur"]["hero_image"],
             "saved_at": "Apr 8, 2026",
         },
     ]
@@ -439,41 +439,103 @@ def get_mock_saved_trips():
 
 def get_ride_matches():
     return [
+        # INDORE - Rajwada Palace (Actual 22.7186, 75.8560) -> We set rider near 22.707, 75.8450 (offset by ~0.011 diff)
         {
+            "id": "r1",
             "name": "Rohan M.",
-            "age": 22,
-            "bio": "Engineering student | Loves heritage & street food",
-            "travel_style": "adventure",
-            "match_pct": 94,
-            "co2_saved": "2.4 kg",
-            "split_cost": 420,
-            "verified": True,
-            "avatar_color": "#6366f1",
             "avatar_initials": "RM",
-        },
-        {
-            "name": "Priya S.",
-            "age": 21,
-            "bio": "Design student | Backpacker & hostel enthusiast",
-            "travel_style": "backpacking",
-            "match_pct": 88,
-            "co2_saved": "1.8 kg",
-            "split_cost": 445,
-            "verified": False,
-            "avatar_color": "#ec4899",
-            "avatar_initials": "PS",
-        },
-        {
-            "name": "Arjun T.",
-            "age": 23,
-            "bio": "Photography buff | Chill traveler, early riser",
-            "travel_style": "chill",
-            "match_pct": 81,
-            "co2_saved": "1.2 kg",
-            "split_cost": 460,
+            "avatar_color": "#6366f1",
+            "bio": "Engineering student | Loves heritage",
+            "travel_style": "adventure",
             "verified": True,
-            "avatar_color": "#0ea5e9",
-            "avatar_initials": "AT",
+            "destination": "Rajwada Palace",
+            "lat": 22.7066,
+            "lon": 75.8440,
+            "departure_time": "10:10 AM"
         },
+        {
+            "id": "r2",
+            "name": "Priya S.",
+            "avatar_initials": "PS",
+            "avatar_color": "#ec4899",
+            "bio": "Design student | Backpacker",
+            "travel_style": "backpacking",
+            "verified": False,
+            "destination": "Rajwada Palace",
+            "lat": 22.7100,
+            "lon": 75.8455,
+            "departure_time": "09:55 AM"
+        },
+        # INDORE - Fake far rider
+        {
+            "id": "r3",
+            "name": "Vikram D.",
+            "avatar_initials": "VD",
+            "avatar_color": "#0ea5e9",
+            "bio": "Chill traveler, early riser",
+            "travel_style": "chill",
+            "verified": True,
+            "destination": "Rajwada Palace",
+            "lat": 22.8500, # well outside 2km
+            "lon": 75.9000,
+            "departure_time": "10:15 AM"
+        },
+        # UDAIPUR - City Palace (Actual 24.5764, 73.6835) -> Rider near 24.565, 73.672
+        {
+            "id": "u1",
+            "name": "Neha K.",
+            "avatar_initials": "NK",
+            "avatar_color": "#10b981",
+            "bio": "Solo traveler & foodie",
+            "travel_style": "chill",
+            "verified": True,
+            "destination": "City Palace",
+            "lat": 24.5644,
+            "lon": 73.6715,
+            "departure_time": "09:50 AM"
+        },
+        # DEHRADUN - Robber's Cave (Actual 30.3705, 78.0617) -> Rider near 30.3585, 78.0497
+        {
+            "id": "d1",
+            "name": "Karan V.",
+            "avatar_initials": "KV",
+            "avatar_color": "#f59e0b",
+            "bio": "Backpacker | Photography",
+            "travel_style": "backpacking",
+            "verified": True,
+            "destination": "Robber's Cave",
+            "lat": 30.3585,
+            "lon": 78.0497,
+            "departure_time": "10:10 AM"
+        },
+        # JAIPUR - Amber Fort (Actual 26.9855, 75.8513) -> Rider near 26.9735, 75.8393
+        {
+            "id": "j1",
+            "name": "Aman T.",
+            "avatar_initials": "AT",
+            "avatar_color": "#f97316",
+            "bio": "Love exploring history",
+            "travel_style": "adventure",
+            "verified": True,
+            "destination": "Amber Fort",
+            "lat": 26.9735,
+            "lon": 75.8393,
+            "departure_time": "10:05 AM"
+        },
+        # GOA - Calangute Beach (Actual 15.5449, 73.7533) -> Rider near 15.5329, 73.7413
+        {
+            "id": "g1",
+            "name": "Sara F.",
+            "avatar_initials": "SF",
+            "avatar_color": "#8b5cf6",
+            "bio": "Beach lover",
+            "travel_style": "chill",
+            "verified": True,
+            "destination": "Calangute Beach",
+            "lat": 15.5329,
+            "lon": 73.7413,
+            "departure_time": "09:45 AM"
+        }
     ]
+
 
